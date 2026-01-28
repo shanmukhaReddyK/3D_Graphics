@@ -66,5 +66,5 @@ Thumbs.db
 # =========================
 # External dependencies (optional)
 # =========================
-external/glfw/
-external/glad/
+#external/glfw/
+#external/glad/
