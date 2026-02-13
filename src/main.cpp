@@ -48,7 +48,10 @@ int main()
 
     // build and compile our shader program
     // ------------------------------------
+
     Shader ourShader("../src/shaders/vertexShader.vert","../src/shaders/fragmentShader.frag");
+    ourShader.use();
+    ourShader.setFloat("loopDuration", 5.0f);
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -99,6 +102,8 @@ int main()
 
         // draw our first triangle
         ourShader.use();
+        ourShader.setFloat("time", glfwGetTime());
+        
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 
         glDrawArrays(GL_TRIANGLES, 0, 3);
