@@ -1,24 +1,14 @@
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
+#version 330
 
-uniform float loopDuration;
-uniform float time;
+layout(location = 0) in vec4 position;
+layout(location = 1) in vec4 color;
 
-out vec3 ourColor;
+smooth out vec4 theColor;
+
+uniform mat4 perspectiveMatrix;
 
 void main()
 {
-    float timeScale = 3.14159f * 2.0f / loopDuration;
-    
-    float currTime = mod(time, loopDuration);
-
-    vec4 totalOffset = vec4(
-        cos(currTime * timeScale) * 0.5f,
-        sin(currTime * timeScale) * 0.5f,
-        0.0f,
-        0.0f);
-
-    gl_Position = vec4(aPos, 1.0) + totalOffset;
-    ourColor = aColor;
+    gl_Position = perspectiveMatrix * (position + vec4(1.50f, 0.50f, 0, 0));
+    theColor = color;
 }

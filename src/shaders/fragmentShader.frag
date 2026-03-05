@@ -1,9 +1,10 @@
-#version 330 core
-out vec4 FragColor;
+#version 330
 
-in vec3 ourColor;
+smooth in vec4 theColor;
+
+out vec4 outputColor;
 
 void main()
 {
-    FragColor = vec4(ourColor, 1.0f);
+	outputColor = theColor;
 }
