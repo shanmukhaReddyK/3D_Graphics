@@ -206,6 +206,8 @@ int main()
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
 
+	glEnable(GL_DEPTH_CLAMP);
+
 
 
     unsigned int VBO,IBO,VAO1,VAO2;
@@ -238,22 +240,6 @@ int main()
 
 	glBindVertexArray(0);
 
-	glGenVertexArrays(1, &VAO2);
-	glBindVertexArray(VAO2);
-
-	size_t posDataOffset = sizeof(float) * 3 * (numberOfVertices/2);
-	colorDataOffset += sizeof(float) * 4 * (numberOfVertices/2);
-
-	//Use the same buffer object previously bound to GL_ARRAY_BUFFER.
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)posDataOffset);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)colorDataOffset);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-
-	glBindVertexArray(0);
-    
-
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -271,12 +257,12 @@ int main()
         ourShader.use();
 
         glBindVertexArray(VAO1);
-        glUniform3f(offsetUniform, 0.0f, 0.0f, 0.0f);    
+        glUniform3f(offsetUniform, 0.0f, 0.0f, 0.5f);    
         glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
 
-        glBindVertexArray(VAO2);
+        glBindVertexArray(VAO1);
         glUniform3f(offsetUniform, 0.0f, 0.0f, -1.0f);
-        glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
+        glDrawElementsBaseVertex(GL_TRIANGLES, ARRAY_COUNT(indexData),GL_UNSIGNED_SHORT, 0, numberOfVertices / 2);
 
         glBindVertexArray(0);
         glfwSwapBuffers(window);
