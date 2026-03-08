@@ -4,18 +4,149 @@
 
 #include <iostream>
 #include <cstring>
+#define ARRAY_COUNT( array ) (sizeof( array ) / (sizeof( array[0] ) * (sizeof( array ) != sizeof(void*) || sizeof( array[0] ) <= sizeof(void*))))
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 
 // settings
-const unsigned int SCR_WIDTH = 600;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_HEIGHT = 800;
 
 float perspectiveMatrix[16];
 const float fFrustumScale = 1.0f;
 
 Shader* ourShaderptr;
+
+const int numberOfVertices = 36;
+
+#define RIGHT_EXTENT 0.8f
+#define LEFT_EXTENT -RIGHT_EXTENT
+#define TOP_EXTENT 0.20f
+#define MIDDLE_EXTENT 0.0f
+#define BOTTOM_EXTENT -TOP_EXTENT
+#define FRONT_EXTENT -1.25f
+#define REAR_EXTENT -1.75f
+
+#define GREEN_COLOR 0.75f, 0.75f, 1.0f, 1.0f
+#define BLUE_COLOR 	0.0f, 0.5f, 0.0f, 1.0f
+#define RED_COLOR 1.0f, 0.0f, 0.0f, 1.0f
+#define GREY_COLOR 0.8f, 0.8f, 0.8f, 1.0f
+#define BROWN_COLOR 0.5f, 0.5f, 0.0f, 1.0f
+
+const float vertexData[] = {
+	//Object 1 positions
+	LEFT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
+	LEFT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
+	RIGHT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
+	RIGHT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
+
+	LEFT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
+	LEFT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
+	RIGHT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
+	RIGHT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
+
+	LEFT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
+	LEFT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
+	LEFT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
+
+	RIGHT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
+	RIGHT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
+	RIGHT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
+
+	LEFT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
+	LEFT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
+	RIGHT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
+	RIGHT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
+
+	//Object 2 positions
+	TOP_EXTENT,		RIGHT_EXTENT,	REAR_EXTENT,
+	MIDDLE_EXTENT,	RIGHT_EXTENT,	FRONT_EXTENT,
+	MIDDLE_EXTENT,	LEFT_EXTENT,	FRONT_EXTENT,
+	TOP_EXTENT,		LEFT_EXTENT,	REAR_EXTENT,
+
+	BOTTOM_EXTENT,	RIGHT_EXTENT,	REAR_EXTENT,
+	MIDDLE_EXTENT,	RIGHT_EXTENT,	FRONT_EXTENT,
+	MIDDLE_EXTENT,	LEFT_EXTENT,	FRONT_EXTENT,
+	BOTTOM_EXTENT,	LEFT_EXTENT,	REAR_EXTENT,
+
+	TOP_EXTENT,		RIGHT_EXTENT,	REAR_EXTENT,
+	MIDDLE_EXTENT,	RIGHT_EXTENT,	FRONT_EXTENT,
+	BOTTOM_EXTENT,	RIGHT_EXTENT,	REAR_EXTENT,
+					
+	TOP_EXTENT,		LEFT_EXTENT,	REAR_EXTENT,
+	MIDDLE_EXTENT,	LEFT_EXTENT,	FRONT_EXTENT,
+	BOTTOM_EXTENT,	LEFT_EXTENT,	REAR_EXTENT,
+					
+	BOTTOM_EXTENT,	RIGHT_EXTENT,	REAR_EXTENT,
+	TOP_EXTENT,		RIGHT_EXTENT,	REAR_EXTENT,
+	TOP_EXTENT,		LEFT_EXTENT,	REAR_EXTENT,
+	BOTTOM_EXTENT,	LEFT_EXTENT,	REAR_EXTENT,
+
+	//Object 1 colors
+	GREEN_COLOR,
+	GREEN_COLOR,
+	GREEN_COLOR,
+	GREEN_COLOR,
+
+	BLUE_COLOR,
+	BLUE_COLOR,
+	BLUE_COLOR,
+	BLUE_COLOR,
+
+	RED_COLOR,
+	RED_COLOR,
+	RED_COLOR,
+
+	GREY_COLOR,
+	GREY_COLOR,
+	GREY_COLOR,
+
+	BROWN_COLOR,
+	BROWN_COLOR,
+	BROWN_COLOR,
+	BROWN_COLOR,
+
+	//Object 2 colors
+	RED_COLOR,
+	RED_COLOR,
+	RED_COLOR,
+	RED_COLOR,
+
+	BROWN_COLOR,
+	BROWN_COLOR,
+	BROWN_COLOR,
+	BROWN_COLOR,
+
+	BLUE_COLOR,
+	BLUE_COLOR,
+	BLUE_COLOR,
+
+	GREEN_COLOR,
+	GREEN_COLOR,
+	GREEN_COLOR,
+
+	GREY_COLOR,
+	GREY_COLOR,
+	GREY_COLOR,
+	GREY_COLOR,
+};
+
+const GLshort indexData[] =
+{
+	0, 2, 1,
+	3, 2, 0,
+
+	4, 5, 6,
+	6, 7, 4,
+
+	8, 9, 10,
+	11, 13, 12,
+
+	14, 16, 15,
+	17, 16, 14,
+};
 
 
 int main()
@@ -56,8 +187,9 @@ int main()
     ourShaderptr = &ourShader;
     ourShader.use();
     ourShader.setFloat("loopDuration", 5.0f);
+    GLuint offsetUniform = glGetUniformLocation(ourShader.ID, "offset");
 
-    float fzNear = 0.5f; float fzFar = 3.0f;
+    float fzNear = 1.0f; float fzFar = 3.0f;
 
     memset(perspectiveMatrix, 0, sizeof(float) * 16);
 
@@ -74,129 +206,52 @@ int main()
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
 
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    const float vertexData[] = {
-        0.25f,  0.25f, -1.25f, 1.0f,
-        0.25f, -0.25f, -1.25f, 1.0f,
-        -0.25f,  0.25f, -1.25f, 1.0f,
-
-        0.25f, -0.25f, -1.25f, 1.0f,
-        -0.25f, -0.25f, -1.25f, 1.0f,
-        -0.25f,  0.25f, -1.25f, 1.0f,
-
-        0.25f,  0.25f, -2.75f, 1.0f,
-        -0.25f,  0.25f, -2.75f, 1.0f,
-        0.25f, -0.25f, -2.75f, 1.0f,
-
-        0.25f, -0.25f, -2.75f, 1.0f,
-        -0.25f,  0.25f, -2.75f, 1.0f,
-        -0.25f, -0.25f, -2.75f, 1.0f,
-
-        -0.25f,  0.25f, -1.25f, 1.0f,
-        -0.25f, -0.25f, -1.25f, 1.0f,
-        -0.25f, -0.25f, -2.75f, 1.0f,
-
-        -0.25f,  0.25f, -1.25f, 1.0f,
-        -0.25f, -0.25f, -2.75f, 1.0f,
-        -0.25f,  0.25f, -2.75f, 1.0f,
-
-        0.25f,  0.25f, -1.25f, 1.0f,
-        0.25f, -0.25f, -2.75f, 1.0f,
-        0.25f, -0.25f, -1.25f, 1.0f,
-
-        0.25f,  0.25f, -1.25f, 1.0f,
-        0.25f,  0.25f, -2.75f, 1.0f,
-        0.25f, -0.25f, -2.75f, 1.0f,
-
-        0.25f,  0.25f, -2.75f, 1.0f,
-        0.25f,  0.25f, -1.25f, 1.0f,
-        -0.25f,  0.25f, -1.25f, 1.0f,
-
-        0.25f,  0.25f, -2.75f, 1.0f,
-        -0.25f,  0.25f, -1.25f, 1.0f,
-        -0.25f,  0.25f, -2.75f, 1.0f,
-
-        0.25f, -0.25f, -2.75f, 1.0f,
-        -0.25f, -0.25f, -1.25f, 1.0f,
-        0.25f, -0.25f, -1.25f, 1.0f,
-
-        0.25f, -0.25f, -2.75f, 1.0f,
-        -0.25f, -0.25f, -2.75f, 1.0f,
-        -0.25f, -0.25f, -1.25f, 1.0f,
 
 
+    unsigned int VBO,IBO,VAO1,VAO2;
 
+    //initialize vertex buffer
+	glGenBuffers(1, &VBO);
 
-        0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f,
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertexData), vertexData, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f,
+	glGenBuffers(1, &IBO);
 
-        0.8f, 0.8f, 0.8f, 1.0f,
-        0.8f, 0.8f, 0.8f, 1.0f,
-        0.8f, 0.8f, 0.8f, 1.0f,
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexData), indexData, GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-        0.8f, 0.8f, 0.8f, 1.0f,
-        0.8f, 0.8f, 0.8f, 1.0f,
-        0.8f, 0.8f, 0.8f, 1.0f,
+    //initialize array buffer
+	glGenVertexArrays(1, &VAO1);
+	glBindVertexArray(VAO1);
 
-        0.0f, 1.0f, 0.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
+	size_t colorDataOffset = sizeof(float) * 3 * numberOfVertices;
 
-        0.0f, 1.0f, 0.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)colorDataOffset);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-        0.5f, 0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.0f, 1.0f,
+	glBindVertexArray(0);
 
-        0.5f, 0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, 0.0f, 1.0f,
+	glGenVertexArrays(1, &VAO2);
+	glBindVertexArray(VAO2);
 
-        1.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f, 1.0f,
+	size_t posDataOffset = sizeof(float) * 3 * (numberOfVertices/2);
+	colorDataOffset += sizeof(float) * 4 * (numberOfVertices/2);
 
-        1.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f, 1.0f,
+	//Use the same buffer object previously bound to GL_ARRAY_BUFFER.
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)posDataOffset);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)colorDataOffset);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-        0.0f, 1.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 1.0f, 1.0f,
-
-        0.0f, 1.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 1.0f, 1.0f,
-
-    };
-    size_t colorData = sizeof(vertexData) / 2;
-
-    unsigned int VBO,VAO;
-
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexData), vertexData, GL_STATIC_DRAW);
-
-    glGenVertexArrays(1, &VAO);   
-    glBindVertexArray(VAO);
-    
-    
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)(colorData));
-    glBindVertexArray(0);
-
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0); 
+	glBindVertexArray(0);
     
 
     // uncomment this call to draw in wireframe polygons.
@@ -210,29 +265,30 @@ int main()
         // -----
         processInput(window);
 
-        // render
-        // ------
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // draw our first triangle
         ourShader.use();
-        
-        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        // glBindVertexArray(0); // no need to unbind it every time 
- 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
+        glBindVertexArray(VAO1);
+        glUniform3f(offsetUniform, 0.0f, 0.0f, 0.0f);    
+        glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
+
+        glBindVertexArray(VAO2);
+        glUniform3f(offsetUniform, 0.0f, 0.0f, -1.0f);
+        glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
+
+        glBindVertexArray(0);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
+    glDeleteVertexArrays(1, &VAO1);
+    glDeleteVertexArrays(1, &VAO2);
     glDeleteBuffers(1, &VBO);
+	// glDeleteBuffers(1, &IBO);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
