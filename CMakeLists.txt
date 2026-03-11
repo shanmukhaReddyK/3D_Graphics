@@ -18,3 +18,4 @@ add_subdirectory(external/glfw)
 add_executable(app src/main.cpp)
 
 target_link_libraries(app PRIVATE glad glfw)
+target_include_directories(app PRIVATE external/glm)

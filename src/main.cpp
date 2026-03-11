@@ -1,6 +1,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "shader.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <cstring>
@@ -14,138 +16,122 @@ void processInput(GLFWwindow *window);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 800;
 
-float perspectiveMatrix[16];
-const float fFrustumScale = 1.0f;
 
-Shader* ourShaderptr;
+GLuint theProgram;
 
-const int numberOfVertices = 36;
+GLuint modelToCameraMatrixUnif;
+GLuint cameraToClipMatrixUnif;
 
-#define RIGHT_EXTENT 0.8f
-#define LEFT_EXTENT -RIGHT_EXTENT
-#define TOP_EXTENT 0.20f
-#define MIDDLE_EXTENT 0.0f
-#define BOTTOM_EXTENT -TOP_EXTENT
-#define FRONT_EXTENT -1.25f
-#define REAR_EXTENT -1.75f
+glm::mat4 cameraToClipMatrix(0.0f);
 
-#define GREEN_COLOR 0.75f, 0.75f, 1.0f, 1.0f
-#define BLUE_COLOR 	0.0f, 0.5f, 0.0f, 1.0f
+float CalcFrustumScale(float fFovDeg)
+{
+	const float degToRad = 3.14159f * 2.0f / 360.0f;
+	float fFovRad = fFovDeg * degToRad;
+	return 1.0f / tan(fFovRad / 2.0f);
+}
+
+const float fFrustumScale = CalcFrustumScale(45.0f);
+
+
+const int numberOfVertices = 8;
+
+#define GREEN_COLOR 0.0f, 1.0f, 0.0f, 1.0f
+#define BLUE_COLOR 	0.0f, 0.0f, 1.0f, 1.0f
 #define RED_COLOR 1.0f, 0.0f, 0.0f, 1.0f
 #define GREY_COLOR 0.8f, 0.8f, 0.8f, 1.0f
 #define BROWN_COLOR 0.5f, 0.5f, 0.0f, 1.0f
 
-const float vertexData[] = {
-	//Object 1 positions
-	LEFT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
-	LEFT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
-	RIGHT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
-	RIGHT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
+const float vertexData[] =
+{
+	+1.0f, +1.0f, +1.0f,
+	-1.0f, -1.0f, +1.0f,
+	-1.0f, +1.0f, -1.0f,
+	+1.0f, -1.0f, -1.0f,
 
-	LEFT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
-	LEFT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
-	RIGHT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
-	RIGHT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
-
-	LEFT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
-	LEFT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
-	LEFT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
-
-	RIGHT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
-	RIGHT_EXTENT,	MIDDLE_EXTENT,	FRONT_EXTENT,
-	RIGHT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
-
-	LEFT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
-	LEFT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
-	RIGHT_EXTENT,	TOP_EXTENT,		REAR_EXTENT,
-	RIGHT_EXTENT,	BOTTOM_EXTENT,	REAR_EXTENT,
-
-	//Object 2 positions
-	TOP_EXTENT,		RIGHT_EXTENT,	REAR_EXTENT,
-	MIDDLE_EXTENT,	RIGHT_EXTENT,	FRONT_EXTENT,
-	MIDDLE_EXTENT,	LEFT_EXTENT,	FRONT_EXTENT,
-	TOP_EXTENT,		LEFT_EXTENT,	REAR_EXTENT,
-
-	BOTTOM_EXTENT,	RIGHT_EXTENT,	REAR_EXTENT,
-	MIDDLE_EXTENT,	RIGHT_EXTENT,	FRONT_EXTENT,
-	MIDDLE_EXTENT,	LEFT_EXTENT,	FRONT_EXTENT,
-	BOTTOM_EXTENT,	LEFT_EXTENT,	REAR_EXTENT,
-
-	TOP_EXTENT,		RIGHT_EXTENT,	REAR_EXTENT,
-	MIDDLE_EXTENT,	RIGHT_EXTENT,	FRONT_EXTENT,
-	BOTTOM_EXTENT,	RIGHT_EXTENT,	REAR_EXTENT,
-					
-	TOP_EXTENT,		LEFT_EXTENT,	REAR_EXTENT,
-	MIDDLE_EXTENT,	LEFT_EXTENT,	FRONT_EXTENT,
-	BOTTOM_EXTENT,	LEFT_EXTENT,	REAR_EXTENT,
-					
-	BOTTOM_EXTENT,	RIGHT_EXTENT,	REAR_EXTENT,
-	TOP_EXTENT,		RIGHT_EXTENT,	REAR_EXTENT,
-	TOP_EXTENT,		LEFT_EXTENT,	REAR_EXTENT,
-	BOTTOM_EXTENT,	LEFT_EXTENT,	REAR_EXTENT,
-
-	//Object 1 colors
-	GREEN_COLOR,
-	GREEN_COLOR,
-	GREEN_COLOR,
-	GREEN_COLOR,
-
-	BLUE_COLOR,
-	BLUE_COLOR,
-	BLUE_COLOR,
-	BLUE_COLOR,
-
-	RED_COLOR,
-	RED_COLOR,
-	RED_COLOR,
-
-	GREY_COLOR,
-	GREY_COLOR,
-	GREY_COLOR,
-
-	BROWN_COLOR,
-	BROWN_COLOR,
-	BROWN_COLOR,
-	BROWN_COLOR,
-
-	//Object 2 colors
-	RED_COLOR,
-	RED_COLOR,
-	RED_COLOR,
-	RED_COLOR,
-
-	BROWN_COLOR,
-	BROWN_COLOR,
-	BROWN_COLOR,
-	BROWN_COLOR,
-
-	BLUE_COLOR,
-	BLUE_COLOR,
-	BLUE_COLOR,
+	-1.0f, -1.0f, -1.0f,
+	+1.0f, +1.0f, -1.0f,
+	+1.0f, -1.0f, +1.0f,
+	-1.0f, +1.0f, +1.0f,
 
 	GREEN_COLOR,
-	GREEN_COLOR,
-	GREEN_COLOR,
+	BLUE_COLOR,
+	RED_COLOR,
+	BROWN_COLOR,
 
-	GREY_COLOR,
-	GREY_COLOR,
-	GREY_COLOR,
-	GREY_COLOR,
+	GREEN_COLOR,
+	BLUE_COLOR,
+	RED_COLOR,
+	BROWN_COLOR,
 };
 
 const GLshort indexData[] =
 {
-	0, 2, 1,
-	3, 2, 0,
+	0, 1, 2,
+	1, 0, 3,
+	2, 3, 0,
+	3, 2, 1,
 
-	4, 5, 6,
-	6, 7, 4,
+	5, 4, 6,
+	4, 5, 7,
+	7, 6, 4,
+	6, 7, 5,
+};
 
-	8, 9, 10,
-	11, 13, 12,
+GLuint vertexBufferObject;
+GLuint indexBufferObject;
+GLuint vao;
 
-	14, 16, 15,
-	17, 16, 14,
+glm::vec3 StationaryOffset(float fElapsedTime)
+{
+	return glm::vec3(0.0f, 0.0f, -20.0f);
+}
+
+glm::vec3 OvalOffset(float fElapsedTime)
+{
+	const float fLoopDuration = 3.0f;
+	const float fScale = 3.14159f * 2.0f / fLoopDuration;
+
+	float fCurrTimeThroughLoop = fmodf(fElapsedTime, fLoopDuration);
+
+	return glm::vec3(cosf(fCurrTimeThroughLoop * fScale) * 4.f,
+		sinf(fCurrTimeThroughLoop * fScale) * 6.f,
+		-20.0f);
+}
+
+glm::vec3 BottomCircleOffset(float fElapsedTime)
+{
+	const float fLoopDuration = 12.0f;
+	const float fScale = 3.14159f * 2.0f / fLoopDuration;
+
+	float fCurrTimeThroughLoop = fmodf(fElapsedTime, fLoopDuration);
+
+	return glm::vec3(cosf(fCurrTimeThroughLoop * fScale) * 5.f,
+		-3.5f,
+		sinf(fCurrTimeThroughLoop * fScale) * 5.f - 20.0f);
+}
+
+struct Instance
+{
+	typedef glm::vec3(*OffsetFunc)(float);
+
+	OffsetFunc CalcOffset;
+
+	glm::mat4 ConstructMatrix(float fElapsedTime)
+	{
+		glm::mat4 theMat(1.0f);
+
+		theMat[3] = glm::vec4(CalcOffset(fElapsedTime), 1.0f);
+
+		return theMat;
+	}
+};
+
+Instance g_instanceList[] =
+{
+	{StationaryOffset},
+	{OvalOffset},
+	{BottomCircleOffset},
 };
 
 
@@ -184,61 +170,59 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     Shader ourShader("../src/shaders/vertexShader.vert","../src/shaders/fragmentShader.frag");
-    ourShaderptr = &ourShader;
+	theProgram = ourShader.ID;
     ourShader.use();
-    ourShader.setFloat("loopDuration", 5.0f);
-    GLuint offsetUniform = glGetUniformLocation(ourShader.ID, "offset");
 
-    float fzNear = 1.0f; float fzFar = 3.0f;
+	modelToCameraMatrixUnif = glGetUniformLocation(theProgram, "modelToCameraMatrix");
+	cameraToClipMatrixUnif = glGetUniformLocation(theProgram, "cameraToClipMatrix");
 
-    memset(perspectiveMatrix, 0, sizeof(float) * 16);
+	float fzNear = 1.0f; float fzFar = 45.0f;
 
-    perspectiveMatrix[0] = fFrustumScale;
-    perspectiveMatrix[5] = fFrustumScale;
-    perspectiveMatrix[10] = (fzFar + fzNear) / (fzNear - fzFar);
-    perspectiveMatrix[14] = (2 * fzFar * fzNear) / (fzNear - fzFar);
-    perspectiveMatrix[11] = -1.0f;
+	cameraToClipMatrix[0].x = fFrustumScale;
+	cameraToClipMatrix[1].y = fFrustumScale;
+	cameraToClipMatrix[2].z = (fzFar + fzNear) / (fzNear - fzFar);
+	cameraToClipMatrix[2].w = -1.0f;
+	cameraToClipMatrix[3].z = (2 * fzFar * fzNear) / (fzNear - fzFar);
 
-    ourShader.setMat4("perspectiveMatrix", perspectiveMatrix);
-
-    //enable ace culling
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CW);
-
-	glEnable(GL_DEPTH_CLAMP);
-
-
-
-    unsigned int VBO,IBO,VAO1,VAO2;
+	glUseProgram(theProgram);
+	glUniformMatrix4fv(cameraToClipMatrixUnif, 1, GL_FALSE, glm::value_ptr(cameraToClipMatrix));
+	glUseProgram(0);
 
     //initialize vertex buffer
-	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &vertexBufferObject);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertexData), vertexData, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	glGenBuffers(1, &IBO);
+	glGenBuffers(1, &indexBufferObject);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexData), indexData, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    //initialize array buffer
-	glGenVertexArrays(1, &VAO1);
-	glBindVertexArray(VAO1);
+	//vertex attribute array
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 
 	size_t colorDataOffset = sizeof(float) * 3 * numberOfVertices;
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)colorDataOffset);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
 
 	glBindVertexArray(0);
+
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CW);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	glDepthFunc(GL_LEQUAL);
+	glDepthRange(0.0f, 1.0f);
 
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -251,29 +235,35 @@ int main()
         // -----
         processInput(window);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClearDepth(1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        ourShader.use();
+		glUseProgram(theProgram);
 
-        glBindVertexArray(VAO1);
-        glUniform3f(offsetUniform, 0.0f, 0.0f, 0.5f);    
-        glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
+		glBindVertexArray(vao);
 
-        glBindVertexArray(VAO1);
-        glUniform3f(offsetUniform, 0.0f, 0.0f, -1.0f);
-        glDrawElementsBaseVertex(GL_TRIANGLES, ARRAY_COUNT(indexData),GL_UNSIGNED_SHORT, 0, numberOfVertices / 2);
+		float fElapsedTime = glfwGetTime();
+		for(int iLoop = 0; iLoop < ARRAY_COUNT(g_instanceList); iLoop++)
+		{
+			Instance &currInst = g_instanceList[iLoop];
+			const glm::mat4 &transformMatrix = currInst.ConstructMatrix(fElapsedTime);
 
-        glBindVertexArray(0);
+			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(transformMatrix));
+			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
+		}
+
+		glBindVertexArray(0);
+		glUseProgram(0);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO1);
-    glDeleteVertexArrays(1, &VAO2);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &indexBufferObject);
+	glDeleteBuffers(1, &vertexBufferObject);
 	// glDeleteBuffers(1, &IBO);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
@@ -294,11 +284,12 @@ void processInput(GLFWwindow *window)
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    perspectiveMatrix[0] = fFrustumScale / (width / (float)height);
-	perspectiveMatrix[5] = fFrustumScale;
+	cameraToClipMatrix[0].x = fFrustumScale * (height / (float)width);
+	cameraToClipMatrix[1].y = fFrustumScale;
 
-    ourShaderptr->use();
-	ourShaderptr->setMat4("perspectiveMatrix", perspectiveMatrix);
+	glUseProgram(theProgram);
+	glUniformMatrix4fv(cameraToClipMatrixUnif, 1, GL_FALSE, glm::value_ptr(cameraToClipMatrix));
+	glUseProgram(0);
 
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
