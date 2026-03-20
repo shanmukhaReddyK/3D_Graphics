@@ -21,6 +21,7 @@ GLuint theProgram;
 
 GLuint modelToCameraMatrixUnif;
 GLuint cameraToClipMatrixUnif;
+GLuint scaleTransMatrixUnif;
 
 glm::mat4 cameraToClipMatrix(0.0f);
 
@@ -111,7 +112,7 @@ glm::vec3 BottomCircleOffset(float fElapsedTime)
 		sinf(fCurrTimeThroughLoop * fScale) * 5.f - 20.0f);
 }
 
-struct Instance
+struct InstanceT
 {
 	typedef glm::vec3(*OffsetFunc)(float);
 
@@ -127,12 +128,80 @@ struct Instance
 	}
 };
 
-Instance g_instanceList[] =
+InstanceT g_instanceListT[] =
 {
 	{StationaryOffset},
 	{OvalOffset},
 	{BottomCircleOffset},
 };
+
+float CalcLerpFactor(float fElapsedTime, float fLoopDuration)
+{
+	float fValue = fmodf(fElapsedTime, fLoopDuration) / fLoopDuration;
+	if(fValue > 0.5f)
+		fValue = 1.0f - fValue;
+
+	return fValue * 2.0f;
+}
+
+glm::vec3 NullScale(float fElapsedTime)
+{
+	return glm::vec3(1.0f, 1.0f, 1.0f);
+}
+
+glm::vec3 StaticUniformScale(float fElapsedTime)
+{
+	return glm::vec3(4.0f, 4.0f, 4.0f);
+}
+
+glm::vec3 StaticNonUniformScale(float fElapsedTime)
+{
+	return glm::vec3(0.5f, 1.0f, 10.0f);
+}
+
+glm::vec3 DynamicUniformScale(float fElapsedTime)
+{
+	const float fLoopDuration = 3.0f;
+
+	return glm::vec3(glm::mix(1.0f, 4.0f, CalcLerpFactor(fElapsedTime, fLoopDuration)));
+}
+
+glm::vec3 DynamicNonUniformScale(float fElapsedTime)
+{
+	const float fXLoopDuration = 3.0f;
+	const float fZLoopDuration = 5.0f;
+
+	return glm::vec3(glm::mix(1.0f, 0.5f, CalcLerpFactor(fElapsedTime, fXLoopDuration)),
+		1.0f,
+		glm::mix(1.0f, 10.0f, CalcLerpFactor(fElapsedTime, fZLoopDuration)));
+}
+
+struct Instance
+{
+	typedef glm::vec3(*ScaleFunc)(float);
+
+	ScaleFunc CalcScale;
+	glm::vec3 offset;
+
+	glm::mat4 ConstructMatrix(float fElapsedTime)
+	{
+		glm::vec3 theScale = CalcScale(fElapsedTime);
+		glm::mat4 theMat(1.0f);
+		theMat[0].x = theScale.x;
+		theMat[1].y = theScale.y;
+		theMat[2].z = theScale.z;
+
+		return theMat;
+	}
+};
+
+Instance g_instanceList[] =
+{
+	{NullScale,					glm::vec3(0.0f, 0.0f, -45.0f)},
+	{StaticNonUniformScale,		glm::vec3(-10.0f, 10.0f, -45.0f)},
+	{DynamicNonUniformScale,	glm::vec3(10.0f, -10.0f, -45.0f)},
+};
+
 
 
 int main()
@@ -175,8 +244,9 @@ int main()
 
 	modelToCameraMatrixUnif = glGetUniformLocation(theProgram, "modelToCameraMatrix");
 	cameraToClipMatrixUnif = glGetUniformLocation(theProgram, "cameraToClipMatrix");
+	scaleTransMatrixUnif = glGetUniformLocation(theProgram, "scaleTransMatrix");
 
-	float fzNear = 1.0f; float fzFar = 45.0f;
+	float fzNear = 1.0f; float fzFar = 61.0f;
 
 	cameraToClipMatrix[0].x = fFrustumScale;
 	cameraToClipMatrix[1].y = fFrustumScale;
@@ -244,12 +314,16 @@ int main()
 		glBindVertexArray(vao);
 
 		float fElapsedTime = glfwGetTime();
-		for(int iLoop = 0; iLoop < ARRAY_COUNT(g_instanceList); iLoop++)
+		for(int iLoop = 0; iLoop < ARRAY_COUNT(g_instanceListT); iLoop++)
 		{
+			InstanceT &currInstT = g_instanceListT[iLoop];
+			const glm::mat4 &transformMatrix = currInstT.ConstructMatrix(fElapsedTime);
+
 			Instance &currInst = g_instanceList[iLoop];
-			const glm::mat4 &transformMatrix = currInst.ConstructMatrix(fElapsedTime);
+			const glm::mat4 &ScaleMatrix = currInst.ConstructMatrix(fElapsedTime);
 
 			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(transformMatrix));
+			glUniformMatrix4fv(scaleTransMatrixUnif, 1, GL_FALSE, glm::value_ptr(ScaleMatrix));
 			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
 		}
 
