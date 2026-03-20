@@ -21,7 +21,6 @@ GLuint theProgram;
 
 GLuint modelToCameraMatrixUnif;
 GLuint cameraToClipMatrixUnif;
-GLuint scaleTransMatrixUnif;
 
 glm::mat4 cameraToClipMatrix(0.0f);
 
@@ -83,58 +82,6 @@ GLuint vertexBufferObject;
 GLuint indexBufferObject;
 GLuint vao;
 
-glm::vec3 StationaryOffset(float fElapsedTime)
-{
-	return glm::vec3(0.0f, 0.0f, -20.0f);
-}
-
-glm::vec3 OvalOffset(float fElapsedTime)
-{
-	const float fLoopDuration = 3.0f;
-	const float fScale = 3.14159f * 2.0f / fLoopDuration;
-
-	float fCurrTimeThroughLoop = fmodf(fElapsedTime, fLoopDuration);
-
-	return glm::vec3(cosf(fCurrTimeThroughLoop * fScale) * 4.f,
-		sinf(fCurrTimeThroughLoop * fScale) * 6.f,
-		-20.0f);
-}
-
-glm::vec3 BottomCircleOffset(float fElapsedTime)
-{
-	const float fLoopDuration = 12.0f;
-	const float fScale = 3.14159f * 2.0f / fLoopDuration;
-
-	float fCurrTimeThroughLoop = fmodf(fElapsedTime, fLoopDuration);
-
-	return glm::vec3(cosf(fCurrTimeThroughLoop * fScale) * 5.f,
-		-3.5f,
-		sinf(fCurrTimeThroughLoop * fScale) * 5.f - 20.0f);
-}
-
-struct InstanceT
-{
-	typedef glm::vec3(*OffsetFunc)(float);
-
-	OffsetFunc CalcOffset;
-
-	glm::mat4 ConstructMatrix(float fElapsedTime)
-	{
-		glm::mat4 theMat(1.0f);
-
-		theMat[3] = glm::vec4(CalcOffset(fElapsedTime), 1.0f);
-
-		return theMat;
-	}
-};
-
-InstanceT g_instanceListT[] =
-{
-	{StationaryOffset},
-	{OvalOffset},
-	{BottomCircleOffset},
-};
-
 float CalcLerpFactor(float fElapsedTime, float fLoopDuration)
 {
 	float fValue = fmodf(fElapsedTime, fLoopDuration) / fLoopDuration;
@@ -144,26 +91,78 @@ float CalcLerpFactor(float fElapsedTime, float fLoopDuration)
 	return fValue * 2.0f;
 }
 
-glm::vec3 NullScale(float fElapsedTime)
+glm::mat3 NullRotation(float fElapsedTime)
 {
-	return glm::vec3(1.0f, 1.0f, 1.0f);
+	return glm::mat3(1.0f);
 }
 
-glm::vec3 StaticUniformScale(float fElapsedTime)
+float ComputeAngleRad(float fElapsedTime, float fLoopDuration)
 {
-	return glm::vec3(4.0f, 4.0f, 4.0f);
+	const float fScale = 3.14159f * 2.0f / fLoopDuration;
+	float fCurrTimeThroughLoop = fmodf(fElapsedTime, fLoopDuration);
+	return fCurrTimeThroughLoop * fScale;
 }
 
-glm::vec3 StaticNonUniformScale(float fElapsedTime)
+glm::mat3 RotateX(float fElapsedTime)
 {
-	return glm::vec3(0.5f, 1.0f, 10.0f);
+	float fAngRad = ComputeAngleRad(fElapsedTime, 3.0);
+	float fCos = cosf(fAngRad);
+	float fSin = sinf(fAngRad);
+
+	glm::mat3 theMat(1.0f);
+	theMat[1].y = fCos; theMat[2].y = -fSin;
+	theMat[1].z = fSin; theMat[2].z = fCos;
+	return theMat;
 }
 
-glm::vec3 DynamicUniformScale(float fElapsedTime)
+glm::mat3 RotateY(float fElapsedTime)
 {
-	const float fLoopDuration = 3.0f;
+	float fAngRad = ComputeAngleRad(fElapsedTime, 2.0);
+	float fCos = cosf(fAngRad);
+	float fSin = sinf(fAngRad);
 
-	return glm::vec3(glm::mix(1.0f, 4.0f, CalcLerpFactor(fElapsedTime, fLoopDuration)));
+	glm::mat3 theMat(1.0f);
+	theMat[0].x = fCos; theMat[2].x = fSin;
+	theMat[0].z = -fSin; theMat[2].z = fCos;
+	return theMat;
+}
+
+glm::mat3 RotateZ(float fElapsedTime)
+{
+	float fAngRad = ComputeAngleRad(fElapsedTime, 2.0);
+	float fCos = cosf(fAngRad);
+	float fSin = sinf(fAngRad);
+
+	glm::mat3 theMat(1.0f);
+	theMat[0].x = fCos; theMat[1].x = -fSin;
+	theMat[0].y = fSin; theMat[1].y = fCos;
+	return theMat;
+}
+
+glm::mat3 RotateAxis(float fElapsedTime)
+{
+	float fAngRad = ComputeAngleRad(fElapsedTime, 2.0);
+	float fCos = cosf(fAngRad);
+	float fInvCos = 1.0f - fCos;
+	float fSin = sinf(fAngRad);
+	float fInvSin = 1.0f - fSin;
+
+	glm::vec3 axis(1.0f, 1.0f, 1.0f);
+	axis = glm::normalize(axis);
+
+	glm::mat3 theMat(1.0f);
+	theMat[0].x = (axis.x * axis.x) + ((1 - axis.x * axis.x) * fCos);
+	theMat[1].x = axis.x * axis.y * (fInvCos) - (axis.z * fSin);
+	theMat[2].x = axis.x * axis.z * (fInvCos) + (axis.y * fSin);
+
+	theMat[0].y = axis.x * axis.y * (fInvCos) + (axis.z * fSin);
+	theMat[1].y = (axis.y * axis.y) + ((1 - axis.y * axis.y) * fCos);
+	theMat[2].y = axis.y * axis.z * (fInvCos) - (axis.x * fSin);
+
+	theMat[0].z = axis.x * axis.z * (fInvCos) - (axis.y * fSin);
+	theMat[1].z = axis.y * axis.z * (fInvCos) + (axis.x * fSin);
+	theMat[2].z = (axis.z * axis.z) + ((1 - axis.z * axis.z) * fCos);
+	return theMat;
 }
 
 glm::vec3 DynamicNonUniformScale(float fElapsedTime)
@@ -178,18 +177,16 @@ glm::vec3 DynamicNonUniformScale(float fElapsedTime)
 
 struct Instance
 {
-	typedef glm::vec3(*ScaleFunc)(float);
+	typedef glm::mat3(*RotationFunc)(float);
 
-	ScaleFunc CalcScale;
+	RotationFunc CalcRotation;
 	glm::vec3 offset;
 
 	glm::mat4 ConstructMatrix(float fElapsedTime)
 	{
-		glm::vec3 theScale = CalcScale(fElapsedTime);
-		glm::mat4 theMat(1.0f);
-		theMat[0].x = theScale.x;
-		theMat[1].y = theScale.y;
-		theMat[2].z = theScale.z;
+		const glm::mat3 &rotMatrix = CalcRotation(fElapsedTime);
+		glm::mat4 theMat(rotMatrix);
+		theMat[3] = glm::vec4(offset, 1.0f);
 
 		return theMat;
 	}
@@ -197,9 +194,11 @@ struct Instance
 
 Instance g_instanceList[] =
 {
-	{NullScale,					glm::vec3(0.0f, 0.0f, -45.0f)},
-	{StaticNonUniformScale,		glm::vec3(-10.0f, 10.0f, -45.0f)},
-	{DynamicNonUniformScale,	glm::vec3(10.0f, -10.0f, -45.0f)},
+	{NullRotation,				glm::vec3(0.0f, 0.0f, -25.0f)},
+	{RotateX,					glm::vec3(-5.0f, -5.0f, -25.0f)},
+	{RotateY,					glm::vec3(-5.0f, 5.0f, -25.0f)},
+	{RotateZ,					glm::vec3(5.0f, 5.0f, -25.0f)},
+	{RotateAxis,				glm::vec3(5.0f, -5.0f, -25.0f)},
 };
 
 
@@ -244,7 +243,6 @@ int main()
 
 	modelToCameraMatrixUnif = glGetUniformLocation(theProgram, "modelToCameraMatrix");
 	cameraToClipMatrixUnif = glGetUniformLocation(theProgram, "cameraToClipMatrix");
-	scaleTransMatrixUnif = glGetUniformLocation(theProgram, "scaleTransMatrix");
 
 	float fzNear = 1.0f; float fzFar = 61.0f;
 
@@ -314,16 +312,12 @@ int main()
 		glBindVertexArray(vao);
 
 		float fElapsedTime = glfwGetTime();
-		for(int iLoop = 0; iLoop < ARRAY_COUNT(g_instanceListT); iLoop++)
+		for(int iLoop = 0; iLoop < ARRAY_COUNT(g_instanceList); iLoop++)
 		{
-			InstanceT &currInstT = g_instanceListT[iLoop];
-			const glm::mat4 &transformMatrix = currInstT.ConstructMatrix(fElapsedTime);
-
 			Instance &currInst = g_instanceList[iLoop];
-			const glm::mat4 &ScaleMatrix = currInst.ConstructMatrix(fElapsedTime);
+			const glm::mat4 &transformMatrix = currInst.ConstructMatrix(fElapsedTime);
 
 			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(transformMatrix));
-			glUniformMatrix4fv(scaleTransMatrixUnif, 1, GL_FALSE, glm::value_ptr(ScaleMatrix));
 			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
 		}
 
