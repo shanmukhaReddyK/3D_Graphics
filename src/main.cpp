@@ -3,6 +3,7 @@
 #include "shader.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <stack>
 
 #include <iostream>
 #include <cstring>
@@ -10,12 +11,16 @@
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 800;
 
+bool up    = false;
+bool down  = false;
+bool left  = false;
+bool right = false;
 
 GLuint theProgram;
 
@@ -34,48 +39,105 @@ float CalcFrustumScale(float fFovDeg)
 const float fFrustumScale = CalcFrustumScale(45.0f);
 
 
-const int numberOfVertices = 8;
+const int numberOfVertices = 24;
 
+#define RED_COLOR 1.0f, 0.0f, 0.0f, 1.0f
 #define GREEN_COLOR 0.0f, 1.0f, 0.0f, 1.0f
 #define BLUE_COLOR 	0.0f, 0.0f, 1.0f, 1.0f
-#define RED_COLOR 1.0f, 0.0f, 0.0f, 1.0f
-#define GREY_COLOR 0.8f, 0.8f, 0.8f, 1.0f
-#define BROWN_COLOR 0.5f, 0.5f, 0.0f, 1.0f
+
+#define YELLOW_COLOR 1.0f, 1.0f, 0.0f, 1.0f
+#define CYAN_COLOR 0.0f, 1.0f, 1.0f, 1.0f
+#define MAGENTA_COLOR 	1.0f, 0.0f, 1.0f, 1.0f
 
 const float vertexData[] =
 {
+	//Front
 	+1.0f, +1.0f, +1.0f,
-	-1.0f, -1.0f, +1.0f,
-	-1.0f, +1.0f, -1.0f,
-	+1.0f, -1.0f, -1.0f,
-
-	-1.0f, -1.0f, -1.0f,
-	+1.0f, +1.0f, -1.0f,
 	+1.0f, -1.0f, +1.0f,
+	-1.0f, -1.0f, +1.0f,
 	-1.0f, +1.0f, +1.0f,
 
-	GREEN_COLOR,
-	BLUE_COLOR,
-	RED_COLOR,
-	BROWN_COLOR,
+	//Top
+	+1.0f, +1.0f, +1.0f,
+	-1.0f, +1.0f, +1.0f,
+	-1.0f, +1.0f, -1.0f,
+	+1.0f, +1.0f, -1.0f,
+
+	//Left
+	+1.0f, +1.0f, +1.0f,
+	+1.0f, +1.0f, -1.0f,
+	+1.0f, -1.0f, -1.0f,
+	+1.0f, -1.0f, +1.0f,
+
+	//Back
+	+1.0f, +1.0f, -1.0f,
+	-1.0f, +1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	+1.0f, -1.0f, -1.0f,
+
+	//Bottom
+	+1.0f, -1.0f, +1.0f,
+	+1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f, +1.0f,
+
+	//Right
+	-1.0f, +1.0f, +1.0f,
+	-1.0f, -1.0f, +1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f, +1.0f, -1.0f,
+
 
 	GREEN_COLOR,
+	GREEN_COLOR,
+	GREEN_COLOR,
+	GREEN_COLOR,
+
 	BLUE_COLOR,
+	BLUE_COLOR,
+	BLUE_COLOR,
+	BLUE_COLOR,
+
 	RED_COLOR,
-	BROWN_COLOR,
+	RED_COLOR,
+	RED_COLOR,
+	RED_COLOR,
+
+	YELLOW_COLOR,
+	YELLOW_COLOR,
+	YELLOW_COLOR,
+	YELLOW_COLOR,
+
+	CYAN_COLOR,
+	CYAN_COLOR,
+	CYAN_COLOR,
+	CYAN_COLOR,
+
+	MAGENTA_COLOR,
+	MAGENTA_COLOR,
+	MAGENTA_COLOR,
+	MAGENTA_COLOR,
 };
 
 const GLshort indexData[] =
 {
 	0, 1, 2,
-	1, 0, 3,
 	2, 3, 0,
-	3, 2, 1,
 
-	5, 4, 6,
-	4, 5, 7,
-	7, 6, 4,
-	6, 7, 5,
+	4, 5, 6,
+	6, 7, 4,
+
+	8, 9, 10,
+	10, 11, 8,
+
+	12, 13, 14,
+	14, 15, 12,
+
+	16, 17, 18,
+	18, 19, 16,
+
+	20, 21, 22,
+	22, 23, 20,
 };
 
 GLuint vertexBufferObject;
@@ -91,21 +153,15 @@ float CalcLerpFactor(float fElapsedTime, float fLoopDuration)
 	return fValue * 2.0f;
 }
 
-glm::mat3 NullRotation(float fElapsedTime)
+inline float DegToRad(float fAngDeg)
 {
-	return glm::mat3(1.0f);
+	const float fDegToRad = 3.14159f * 2.0f / 360.0f;
+	return fAngDeg * fDegToRad;
 }
 
-float ComputeAngleRad(float fElapsedTime, float fLoopDuration)
+glm::mat3 RotateX(float fAngDeg)
 {
-	const float fScale = 3.14159f * 2.0f / fLoopDuration;
-	float fCurrTimeThroughLoop = fmodf(fElapsedTime, fLoopDuration);
-	return fCurrTimeThroughLoop * fScale;
-}
-
-glm::mat3 RotateX(float fElapsedTime)
-{
-	float fAngRad = ComputeAngleRad(fElapsedTime, 3.0);
+	float fAngRad = DegToRad(fAngDeg);
 	float fCos = cosf(fAngRad);
 	float fSin = sinf(fAngRad);
 
@@ -115,9 +171,9 @@ glm::mat3 RotateX(float fElapsedTime)
 	return theMat;
 }
 
-glm::mat3 RotateY(float fElapsedTime)
+glm::mat3 RotateY(float fAngDeg)
 {
-	float fAngRad = ComputeAngleRad(fElapsedTime, 2.0);
+	float fAngRad = DegToRad(fAngDeg);
 	float fCos = cosf(fAngRad);
 	float fSin = sinf(fAngRad);
 
@@ -127,9 +183,9 @@ glm::mat3 RotateY(float fElapsedTime)
 	return theMat;
 }
 
-glm::mat3 RotateZ(float fElapsedTime)
+glm::mat3 RotateZ(float fAngDeg)
 {
-	float fAngRad = ComputeAngleRad(fElapsedTime, 2.0);
+	float fAngRad = DegToRad(fAngDeg);
 	float fCos = cosf(fAngRad);
 	float fSin = sinf(fAngRad);
 
@@ -139,69 +195,67 @@ glm::mat3 RotateZ(float fElapsedTime)
 	return theMat;
 }
 
-glm::mat3 RotateAxis(float fElapsedTime)
+class MatrixStack
 {
-	float fAngRad = ComputeAngleRad(fElapsedTime, 2.0);
-	float fCos = cosf(fAngRad);
-	float fInvCos = 1.0f - fCos;
-	float fSin = sinf(fAngRad);
-	float fInvSin = 1.0f - fSin;
-
-	glm::vec3 axis(1.0f, 1.0f, 1.0f);
-	axis = glm::normalize(axis);
-
-	glm::mat3 theMat(1.0f);
-	theMat[0].x = (axis.x * axis.x) + ((1 - axis.x * axis.x) * fCos);
-	theMat[1].x = axis.x * axis.y * (fInvCos) - (axis.z * fSin);
-	theMat[2].x = axis.x * axis.z * (fInvCos) + (axis.y * fSin);
-
-	theMat[0].y = axis.x * axis.y * (fInvCos) + (axis.z * fSin);
-	theMat[1].y = (axis.y * axis.y) + ((1 - axis.y * axis.y) * fCos);
-	theMat[2].y = axis.y * axis.z * (fInvCos) - (axis.x * fSin);
-
-	theMat[0].z = axis.x * axis.z * (fInvCos) - (axis.y * fSin);
-	theMat[1].z = axis.y * axis.z * (fInvCos) + (axis.x * fSin);
-	theMat[2].z = (axis.z * axis.z) + ((1 - axis.z * axis.z) * fCos);
-	return theMat;
-}
-
-glm::vec3 DynamicNonUniformScale(float fElapsedTime)
-{
-	const float fXLoopDuration = 3.0f;
-	const float fZLoopDuration = 5.0f;
-
-	return glm::vec3(glm::mix(1.0f, 0.5f, CalcLerpFactor(fElapsedTime, fXLoopDuration)),
-		1.0f,
-		glm::mix(1.0f, 10.0f, CalcLerpFactor(fElapsedTime, fZLoopDuration)));
-}
-
-struct Instance
-{
-	typedef glm::mat3(*RotationFunc)(float);
-
-	RotationFunc CalcRotation;
-	glm::vec3 offset;
-
-	glm::mat4 ConstructMatrix(float fElapsedTime)
+public:
+	MatrixStack()
+		: m_currMat(1.0f)
 	{
-		const glm::mat3 &rotMatrix = CalcRotation(fElapsedTime);
-		glm::mat4 theMat(rotMatrix);
-		theMat[3] = glm::vec4(offset, 1.0f);
-
-		return theMat;
 	}
+
+	const glm::mat4 &Top()
+	{
+		return m_currMat;
+	}
+
+	void RotateX(float fAngDeg)
+	{
+		m_currMat = m_currMat * glm::mat4(::RotateX(fAngDeg));
+	}
+
+	void RotateY(float fAngDeg)
+	{
+		m_currMat = m_currMat * glm::mat4(::RotateY(fAngDeg));
+	}
+
+	void RotateZ(float fAngDeg)
+	{
+		m_currMat = m_currMat * glm::mat4(::RotateZ(fAngDeg));
+	}
+
+	void Scale(const glm::vec3 &scaleVec)
+	{
+		glm::mat4 scaleMat(1.0f);
+		scaleMat[0].x = scaleVec.x;
+		scaleMat[1].y = scaleVec.y;
+		scaleMat[2].z = scaleVec.z;
+
+		m_currMat = m_currMat * scaleMat;
+	}
+
+	void Translate(const glm::vec3 &offsetVec)
+	{
+		glm::mat4 translateMat(1.0f);
+		translateMat[3] = glm::vec4(offsetVec, 1.0f);
+
+		m_currMat = m_currMat * translateMat;
+	}
+
+	void Push()
+	{
+		m_matrices.push(m_currMat);
+	}
+
+	void Pop()
+	{
+		m_currMat = m_matrices.top();
+		m_matrices.pop();
+	}
+
+private:
+	glm::mat4 m_currMat;
+	std::stack<glm::mat4> m_matrices;
 };
-
-Instance g_instanceList[] =
-{
-	{NullRotation,				glm::vec3(0.0f, 0.0f, -25.0f)},
-	{RotateX,					glm::vec3(-5.0f, -5.0f, -25.0f)},
-	{RotateY,					glm::vec3(-5.0f, 5.0f, -25.0f)},
-	{RotateZ,					glm::vec3(5.0f, 5.0f, -25.0f)},
-	{RotateAxis,				glm::vec3(5.0f, -5.0f, -25.0f)},
-};
-
-
 
 int main()
 {
@@ -227,6 +281,7 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetKeyCallback(window,processInput);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -297,12 +352,11 @@ int main()
 
     // render loop
     // -----------
+	glm::mat4 transformMatrix (1.0f);
+	transformMatrix[3] = {3.0f, 3.0f, -20.0f, 1.0f};
+
     while (!glfwWindowShouldClose(window))
     {
-        // input
-        // -----
-        processInput(window);
-
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClearDepth(1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -311,15 +365,26 @@ int main()
 
 		glBindVertexArray(vao);
 
-		float fElapsedTime = glfwGetTime();
-		for(int iLoop = 0; iLoop < ARRAY_COUNT(g_instanceList); iLoop++)
-		{
-			Instance &currInst = g_instanceList[iLoop];
-			const glm::mat4 &transformMatrix = currInst.ConstructMatrix(fElapsedTime);
+		
 
-			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(transformMatrix));
-			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
+		if(up) {
+			transformMatrix[3].y += 0.05;
 		}
+
+		if(down) {
+			transformMatrix[3].y -= 0.05;
+		}
+
+		if(right) {
+			transformMatrix[3].x += 0.05;
+		}
+
+		if(left) {
+			transformMatrix[3].x -= 0.05;
+		}
+
+		glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(transformMatrix));
+		glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
 
 		glBindVertexArray(0);
 		glUseProgram(0);
@@ -342,10 +407,18 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+void processInput(GLFWwindow* window, int key, int scancode, int action, int mods)
+{	if (action == GLFW_PRESS || action == GLFW_RELEASE) {
+		switch(key) {
+			case GLFW_KEY_W : up   	= !up; break;
+			case GLFW_KEY_S : down 	= !down; break;
+			case GLFW_KEY_A : left  = !left; break;
+			case GLFW_KEY_D : right = !right; break;
+			case GLFW_KEY_ESCAPE : glfwSetWindowShouldClose(window, true); break; 
+			default : ;
+		}
+	}
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
