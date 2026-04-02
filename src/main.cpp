@@ -25,9 +25,11 @@ bool right = false;
 GLuint theProgram;
 
 GLuint modelToCameraMatrixUnif;
+GLuint worldToCameraMatrixUnif;
 GLuint cameraToClipMatrixUnif;
 
 glm::mat4 cameraToClipMatrix(0.0f);
+glm::mat4 worldToCameraMatrix(1.0f);
 
 float CalcFrustumScale(float fFovDeg)
 {
@@ -573,6 +575,9 @@ int main()
 
 	modelToCameraMatrixUnif = glGetUniformLocation(theProgram, "modelToCameraMatrix");
 	cameraToClipMatrixUnif = glGetUniformLocation(theProgram, "cameraToClipMatrix");
+	worldToCameraMatrixUnif = glGetUniformLocation(theProgram,"worldToCameraMatrix");
+
+
 
 	float fzNear = 1.0f; float fzFar = 100.0f;
 
@@ -638,7 +643,7 @@ int main()
 
 		glBindVertexArray(vao);
 
-		
+		glUniformMatrix4fv(worldToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(worldToCameraMatrix));
 
 		g_armature.Draw();
 
@@ -678,6 +683,10 @@ void processInput(GLFWwindow* window, int key, int scancode, int action, int mod
 			case GLFW_KEY_C: g_armature.AdjWristRoll(false); break;
 			case GLFW_KEY_Q: g_armature.AdjFingerOpen(true); break;
 			case GLFW_KEY_E: g_armature.AdjFingerOpen(false); break;
+			case GLFW_KEY_L: worldToCameraMatrix[3].x += 0.5f; break;
+			case GLFW_KEY_J: worldToCameraMatrix[3].x += -0.5f; break;
+			case GLFW_KEY_I: worldToCameraMatrix[3].y += 0.5f; break;
+			case GLFW_KEY_K: worldToCameraMatrix[3].y += -0.5f; break;
 			case GLFW_KEY_SPACE: g_armature.WritePose(); break; 
 			case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(window, true); break;
 			default : printf("NOT AN INPUT KEY");
