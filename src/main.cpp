@@ -17,11 +17,6 @@ void processInput(GLFWwindow* window, int key, int scancode, int action, int mod
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 800;
 
-bool up    = false;
-bool down  = false;
-bool left  = false;
-bool right = false;
-
 GLuint theProgram;
 
 GLuint modelToCameraMatrixUnif;
@@ -29,7 +24,7 @@ GLuint worldToCameraMatrixUnif;
 GLuint cameraToClipMatrixUnif;
 
 glm::mat4 cameraToClipMatrix(0.0f);
-glm::mat4 worldToCameraMatrix(1.0f);
+glm::mat4 worldToCameraMatrix(0.0f);
 
 float CalcFrustumScale(float fFovDeg)
 {
@@ -534,6 +529,50 @@ private:
 
 Hierarchy g_armature;
 
+//spherical cam co ordinates
+glm::vec3 sphericalCam(45,45,60.0f);
+
+// euclidean cam co rdinates in world sapce
+glm::vec3 camPos;
+
+//where does cam look at (point)
+glm::vec3 camTarget(3.0f, 2.0f, -35.0f);
+
+glm::vec3 sphericalCamToEuclidean() {
+	float phi = DegToRad(sphericalCam.x);
+	float theta = DegToRad(sphericalCam.y+90);
+	float radius = sphericalCam.z;
+
+	float cosPhi = cosf(phi);
+	float cosTheta = cosf(theta);
+	float sinPhi = sinf(phi);
+	float sinTheta = sinf(theta);
+
+	glm::vec3 DirVec(sinTheta*cosPhi, cosTheta, sinTheta*sinPhi);
+	return ((DirVec*radius)+camTarget);
+}
+
+glm::mat4 CalcLookAtMatrix(const glm::vec3 &cameraPt, const glm::vec3 &lookPt, const glm::vec3 &upPt)
+{
+	glm::vec3 lookDir = glm::normalize(lookPt - cameraPt);
+	glm::vec3 upDir = glm::normalize(upPt);
+
+	glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, upDir));
+	glm::vec3 perpUpDir = glm::cross(rightDir, lookDir);
+
+	glm::mat4 rotMat(1.0f);
+	rotMat[0] = glm::vec4(rightDir, 0.0f);
+	rotMat[1] = glm::vec4(perpUpDir, 0.0f);
+	rotMat[2] = glm::vec4(-lookDir, 0.0f);
+
+	rotMat = glm::transpose(rotMat);
+
+	glm::mat4 transMat(1.0f);
+	transMat[3] = glm::vec4(-cameraPt, 1.0f);
+
+	return rotMat * transMat;
+}
+
 int main()
 {
     // glfw: initialize and configure
@@ -579,7 +618,7 @@ int main()
 
 
 
-	float fzNear = 1.0f; float fzFar = 100.0f;
+	float fzNear = 1.0f; float fzFar = 1000.0f;
 
 	cameraToClipMatrix[0].x = fFrustumScale;
 	cameraToClipMatrix[1].y = fFrustumScale;
@@ -643,6 +682,11 @@ int main()
 
 		glBindVertexArray(vao);
 
+		//convert sphercal cam co-ordinates to euclidean co-cordinates
+		camPos = sphericalCamToEuclidean();
+
+		worldToCameraMatrix = CalcLookAtMatrix(camPos, camTarget, glm::vec3(0.0f, 1.0f, 0.0f));
+
 		glUniformMatrix4fv(worldToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(worldToCameraMatrix));
 
 		g_armature.Draw();
@@ -683,14 +727,18 @@ void processInput(GLFWwindow* window, int key, int scancode, int action, int mod
 			case GLFW_KEY_C: g_armature.AdjWristRoll(false); break;
 			case GLFW_KEY_Q: g_armature.AdjFingerOpen(true); break;
 			case GLFW_KEY_E: g_armature.AdjFingerOpen(false); break;
-			case GLFW_KEY_L: worldToCameraMatrix[3].x += 0.5f; break;
-			case GLFW_KEY_J: worldToCameraMatrix[3].x += -0.5f; break;
-			case GLFW_KEY_I: worldToCameraMatrix[3].y += 0.5f; break;
-			case GLFW_KEY_K: worldToCameraMatrix[3].y += -0.5f; break;
+			case GLFW_KEY_L: sphericalCam.x += -15; break;
+			case GLFW_KEY_J: sphericalCam.x += 15; break;
+			case GLFW_KEY_I: sphericalCam.y += -15; break;
+			case GLFW_KEY_K: sphericalCam.y += 15; break;
+			case GLFW_KEY_U: sphericalCam.z += 5.0f; break;
+			case GLFW_KEY_O: sphericalCam.z += -5.0f; break;
 			case GLFW_KEY_SPACE: g_armature.WritePose(); break; 
 			case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(window, true); break;
-			default : printf("NOT AN INPUT KEY");
+			default : printf("NOT AN INPUT KEY"); break;
 		}
+
+		sphericalCam.y = Clamp(sphericalCam.y,-90,90);
 	}
 }
 
