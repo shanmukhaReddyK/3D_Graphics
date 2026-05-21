@@ -1,18 +1,12 @@
-#version 330
+#version 330 core
 
-layout(location = 0) in vec4 position;
-layout(location = 1) in vec4 color;
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec2 aTexCoord;
 
-smooth out vec4 theColor;
-
-uniform mat4 cameraToClipMatrix;
-uniform mat4 modelToCameraMatrix;
-uniform mat4 worldToCameraMatrix;
+out vec2 TexCoord;
 
 void main()
-{	
-	vec4 cameraPos = modelToCameraMatrix  * position;
-	cameraPos = worldToCameraMatrix * cameraPos;
-	gl_Position = cameraToClipMatrix * cameraPos;
-	theColor = color;
+{
+	gl_Position = vec4(aPos, 1.0);
+	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
 }

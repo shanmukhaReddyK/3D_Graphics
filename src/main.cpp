@@ -1,577 +1,22 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
 #include "shader.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <stack>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "stb_image.h"
 
 #include <iostream>
-#include <cstring>
-#define ARRAY_COUNT( array ) (sizeof( array ) / (sizeof( array[0] ) * (sizeof( array ) != sizeof(void*) || sizeof( array[0] ) <= sizeof(void*))))
-
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window, int key, int scancode, int action, int mods);
+void processInput(GLFWwindow *window);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 800;
-
-GLuint theProgram;
-
-GLuint modelToCameraMatrixUnif;
-GLuint worldToCameraMatrixUnif;
-GLuint cameraToClipMatrixUnif;
-
-glm::mat4 cameraToClipMatrix(0.0f);
-glm::mat4 worldToCameraMatrix(0.0f);
-
-float CalcFrustumScale(float fFovDeg)
-{
-	const float degToRad = 3.14159f * 2.0f / 360.0f;
-	float fFovRad = fFovDeg * degToRad;
-	return 1.0f / tan(fFovRad / 2.0f);
-}
-
-const float fFrustumScale = CalcFrustumScale(45.0f);
-
-
-const int numberOfVertices = 24;
-
-#define RED_COLOR 1.0f, 0.0f, 0.0f, 1.0f
-#define GREEN_COLOR 0.0f, 1.0f, 0.0f, 1.0f
-#define BLUE_COLOR 	0.0f, 0.0f, 1.0f, 1.0f
-
-#define YELLOW_COLOR 1.0f, 1.0f, 0.0f, 1.0f
-#define CYAN_COLOR 0.0f, 1.0f, 1.0f, 1.0f
-#define MAGENTA_COLOR 	1.0f, 0.0f, 1.0f, 1.0f
-
-const float vertexData[] =
-{
-	//Front
-	+1.0f, +1.0f, +1.0f,
-	+1.0f, -1.0f, +1.0f,
-	-1.0f, -1.0f, +1.0f,
-	-1.0f, +1.0f, +1.0f,
-
-	//Top
-	+1.0f, +1.0f, +1.0f,
-	-1.0f, +1.0f, +1.0f,
-	-1.0f, +1.0f, -1.0f,
-	+1.0f, +1.0f, -1.0f,
-
-	//Left
-	+1.0f, +1.0f, +1.0f,
-	+1.0f, +1.0f, -1.0f,
-	+1.0f, -1.0f, -1.0f,
-	+1.0f, -1.0f, +1.0f,
-
-	//Back
-	+1.0f, +1.0f, -1.0f,
-	-1.0f, +1.0f, -1.0f,
-	-1.0f, -1.0f, -1.0f,
-	+1.0f, -1.0f, -1.0f,
-
-	//Bottom
-	+1.0f, -1.0f, +1.0f,
-	+1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f, +1.0f,
-
-	//Right
-	-1.0f, +1.0f, +1.0f,
-	-1.0f, -1.0f, +1.0f,
-	-1.0f, -1.0f, -1.0f,
-	-1.0f, +1.0f, -1.0f,
-
-
-	GREEN_COLOR,
-	GREEN_COLOR,
-	GREEN_COLOR,
-	GREEN_COLOR,
-
-	BLUE_COLOR,
-	BLUE_COLOR,
-	BLUE_COLOR,
-	BLUE_COLOR,
-
-	RED_COLOR,
-	RED_COLOR,
-	RED_COLOR,
-	RED_COLOR,
-
-	YELLOW_COLOR,
-	YELLOW_COLOR,
-	YELLOW_COLOR,
-	YELLOW_COLOR,
-
-	CYAN_COLOR,
-	CYAN_COLOR,
-	CYAN_COLOR,
-	CYAN_COLOR,
-
-	MAGENTA_COLOR,
-	MAGENTA_COLOR,
-	MAGENTA_COLOR,
-	MAGENTA_COLOR,
-};
-
-const GLshort indexData[] =
-{
-	0, 1, 2,
-	2, 3, 0,
-
-	4, 5, 6,
-	6, 7, 4,
-
-	8, 9, 10,
-	10, 11, 8,
-
-	12, 13, 14,
-	14, 15, 12,
-
-	16, 17, 18,
-	18, 19, 16,
-
-	20, 21, 22,
-	22, 23, 20,
-};
-
-GLuint vertexBufferObject;
-GLuint indexBufferObject;
-GLuint vao;
-
-float  CalcLerpFactor(float fElapsedTime, float fLoopDuration)
-{
-	float fValue = fmodf(fElapsedTime, fLoopDuration) / fLoopDuration;
-	if(fValue > 0.5f)
-		fValue = 1.0f - fValue;
-
-	return fValue * 2.0f;
-}
-
-inline float DegToRad(float fAngDeg)
-{
-	const float fDegToRad = 3.14159f * 2.0f / 360.0f;
-	return fAngDeg * fDegToRad;
-}
-
-inline float Clamp(float fValue, float fMinValue, float fMaxValue)
-{
-	if(fValue < fMinValue)
-		return fMinValue;
-
-	if(fValue > fMaxValue)
-		return fMaxValue;
-
-	return fValue;
-}
-
-glm::mat3 RotateX(float fAngDeg)
-{
-	float fAngRad = DegToRad(fAngDeg);
-	float fCos = cosf(fAngRad);
-	float fSin = sinf(fAngRad);
-
-	glm::mat3 theMat(1.0f);
-	theMat[1].y = fCos; theMat[2].y = -fSin;
-	theMat[1].z = fSin; theMat[2].z = fCos;
-	return theMat;
-}
-
-glm::mat3 RotateY(float fAngDeg)
-{
-	float fAngRad = DegToRad(fAngDeg);
-	float fCos = cosf(fAngRad);
-	float fSin = sinf(fAngRad);
-
-	glm::mat3 theMat(1.0f);
-	theMat[0].x = fCos; theMat[2].x = fSin;
-	theMat[0].z = -fSin; theMat[2].z = fCos;
-	return theMat;
-}
-
-glm::mat3 RotateZ(float fAngDeg)
-{
-	float fAngRad = DegToRad(fAngDeg);
-	float fCos = cosf(fAngRad);
-	float fSin = sinf(fAngRad);
-
-	glm::mat3 theMat(1.0f);
-	theMat[0].x = fCos; theMat[1].x = -fSin;
-	theMat[0].y = fSin; theMat[1].y = fCos;
-	return theMat;
-}
-
-class MatrixStack
-{
-public:
-	MatrixStack()
-		: m_currMat(1.0f)
-	{
-	}
-
-	const glm::mat4 &Top()
-	{
-		return m_currMat;
-	}
-
-	void RotateX(float fAngDeg)
-	{
-		m_currMat = m_currMat * glm::mat4(::RotateX(fAngDeg));
-	}
-
-	void RotateY(float fAngDeg)
-	{
-		m_currMat = m_currMat * glm::mat4(::RotateY(fAngDeg));
-	}
-
-	void RotateZ(float fAngDeg)
-	{
-		m_currMat = m_currMat * glm::mat4(::RotateZ(fAngDeg));
-	}
-
-	void Scale(const glm::vec3 &scaleVec)
-	{
-		glm::mat4 scaleMat(1.0f);
-		scaleMat[0].x = scaleVec.x;
-		scaleMat[1].y = scaleVec.y;
-		scaleMat[2].z = scaleVec.z;
-
-		m_currMat = m_currMat * scaleMat;
-	}
-
-	void Translate(const glm::vec3 &offsetVec)
-	{
-		glm::mat4 translateMat(1.0f);
-		translateMat[3] = glm::vec4(offsetVec, 1.0f);
-
-		m_currMat = m_currMat * translateMat;
-	}
-
-	void Push()
-	{
-		m_matrices.push(m_currMat);
-	}
-
-	void Pop()
-	{
-		m_currMat = m_matrices.top();
-		m_matrices.pop();
-	}
-
-private:
-	glm::mat4 m_currMat;
-	std::stack<glm::mat4> m_matrices;
-};
-
-class Hierarchy
-{
-public:
-	Hierarchy()
-		: posBase(glm::vec3(3.0f, -5.0f, -40.0f))
-		, angBase(-45.0f)
-		, posBaseLeft(glm::vec3(2.0f, 0.0f, 0.0f))
-		, posBaseRight(glm::vec3(-2.0f, 0.0f, 0.0f))
-		, scaleBaseZ(3.0f)
-		, angUpperArm(-33.75f)
-		, sizeUpperArm(9.0f)
-		, posLowerArm(glm::vec3(0.0f, 0.0f, 8.0f))
-		, angLowerArm(146.25f)
-		, lenLowerArm(5.0f)
-		, widthLowerArm(1.5f)
-		, posWrist(glm::vec3(0.0f, 0.0f, 5.0f))
-		, angWristRoll(0.0f)
-		, angWristPitch(67.5f)
-		, lenWrist(2.0f)
-		, widthWrist(2.0f)
-		, posLeftFinger(glm::vec3(1.0f, 0.0f, 1.0f))
-		, posRightFinger(glm::vec3(-1.0f, 0.0f, 1.0f))
-		, angFingerOpen(180.0f)
-		, lenFinger(2.0f)
-		, widthFinger(0.5f)
-		, angLowerFinger(45.0f)
-	{}
-
-	void Draw()
-	{
-		MatrixStack modelToCameraStack;
-
-		glUseProgram(theProgram);
-		glBindVertexArray(vao);
-
-		modelToCameraStack.Translate(posBase);
-		modelToCameraStack.RotateY(angBase);
-
-		//Draw left base.
-		{
-			modelToCameraStack.Push();
-			modelToCameraStack.Translate(posBaseLeft);
-			modelToCameraStack.Scale(glm::vec3(1.0f, 1.0f, scaleBaseZ));
-			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-			modelToCameraStack.Pop();
-		}
-
-		//Draw right base.
-		{
-			modelToCameraStack.Push();
-			modelToCameraStack.Translate(posBaseRight);
-			modelToCameraStack.Scale(glm::vec3(1.0f, 1.0f, scaleBaseZ));
-			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-			modelToCameraStack.Pop();
-		}
-
-		//Draw main arm.
-		DrawUpperArm(modelToCameraStack);
-
-		glBindVertexArray(0);
-		glUseProgram(0);
-	}
-
-#define STANDARD_ANGLE_INCREMENT 11.25f
-#define SMALL_ANGLE_INCREMENT 9.0f
-
-	void AdjBase(bool bIncrement)
-	{
-		angBase += bIncrement ? STANDARD_ANGLE_INCREMENT : -STANDARD_ANGLE_INCREMENT;
-		angBase = fmodf(angBase, 360.0f);
-	}
-
-	void AdjUpperArm(bool bIncrement)
-	{
-		angUpperArm += bIncrement ? STANDARD_ANGLE_INCREMENT : -STANDARD_ANGLE_INCREMENT;
-		angUpperArm = Clamp(angUpperArm, -90.0f, 0.0f);
-	}
-
-	void AdjLowerArm(bool bIncrement)
-	{
-		angLowerArm += bIncrement ? STANDARD_ANGLE_INCREMENT : -STANDARD_ANGLE_INCREMENT;
-		angLowerArm = Clamp(angLowerArm, 0.0f, 146.25f);
-	}
-
-	void AdjWristPitch(bool bIncrement)
-	{
-		angWristPitch += bIncrement ? STANDARD_ANGLE_INCREMENT : -STANDARD_ANGLE_INCREMENT;
-		angWristPitch = Clamp(angWristPitch, 0.0f, 90.0f);
-	}
-
-	void AdjWristRoll(bool bIncrement)
-	{
-		angWristRoll += bIncrement ? STANDARD_ANGLE_INCREMENT : -STANDARD_ANGLE_INCREMENT;
-		angWristRoll = fmodf(angWristRoll, 360.0f);
-	}
-
-	void AdjFingerOpen(bool bIncrement)
-	{
-		angFingerOpen += bIncrement ? SMALL_ANGLE_INCREMENT : -SMALL_ANGLE_INCREMENT;
-		angFingerOpen = Clamp(angFingerOpen, 9.0f, 180.0f);
-	}
-
-	void WritePose()
-	{
-		printf("angBase:\t%f\n", angBase);
-		printf("angUpperArm:\t%f\n", angUpperArm);
-		printf("angLowerArm:\t%f\n", angLowerArm);
-		printf("angWristPitch:\t%f\n", angWristPitch);
-		printf("angWristRoll:\t%f\n", angWristRoll);
-		printf("angFingerOpen:\t%f\n", angFingerOpen);
-		printf("\n");
-	}
-
-private:
-	void DrawFingers(MatrixStack &modelToCameraStack)
-	{
-		//Draw left finger
-		modelToCameraStack.Push();
-		modelToCameraStack.Translate(posLeftFinger);
-		modelToCameraStack.RotateY(angFingerOpen);
-
-		modelToCameraStack.Push();
-		modelToCameraStack.Translate(glm::vec3(0.0f, 0.0f, lenFinger / 2.0f));
-		modelToCameraStack.Scale(glm::vec3(widthFinger / 2.0f, widthFinger/ 2.0f, lenFinger / 2.0f));
-		glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-		glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-		modelToCameraStack.Pop();
-
-		{
-			//Draw left lower finger
-			modelToCameraStack.Push();
-			modelToCameraStack.Translate(glm::vec3(0.0f, 0.0f, lenFinger));
-			modelToCameraStack.RotateY(-angLowerFinger);
-
-			modelToCameraStack.Push();
-			modelToCameraStack.Translate(glm::vec3(0.0f, 0.0f, lenFinger / 2.0f));
-			modelToCameraStack.Scale(glm::vec3(widthFinger / 2.0f, widthFinger/ 2.0f, lenFinger / 2.0f));
-			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-			modelToCameraStack.Pop();
-
-			modelToCameraStack.Pop();
-		}
-
-		modelToCameraStack.Pop();
-
-		//Draw right finger
-		modelToCameraStack.Push();
-		modelToCameraStack.Translate(posRightFinger);
-		modelToCameraStack.RotateY(-angFingerOpen);
-
-		modelToCameraStack.Push();
-		modelToCameraStack.Translate(glm::vec3(0.0f, 0.0f, lenFinger / 2.0f));
-		modelToCameraStack.Scale(glm::vec3(widthFinger / 2.0f, widthFinger/ 2.0f, lenFinger / 2.0f));
-		glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-		glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-		modelToCameraStack.Pop();
-
-		{
-			//Draw right lower finger
-			modelToCameraStack.Push();
-			modelToCameraStack.Translate(glm::vec3(0.0f, 0.0f, lenFinger));
-			modelToCameraStack.RotateY(angLowerFinger);
-
-			modelToCameraStack.Push();
-			modelToCameraStack.Translate(glm::vec3(0.0f, 0.0f, lenFinger / 2.0f));
-			modelToCameraStack.Scale(glm::vec3(widthFinger / 2.0f, widthFinger/ 2.0f, lenFinger / 2.0f));
-			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-			modelToCameraStack.Pop();
-
-			modelToCameraStack.Pop();
-		}
-
-		modelToCameraStack.Pop();
-	}
-
-	void DrawWrist(MatrixStack &modelToCameraStack)
-	{
-		modelToCameraStack.Push();
-		modelToCameraStack.Translate(posWrist);
-		modelToCameraStack.RotateZ(angWristRoll);
-		modelToCameraStack.RotateX(angWristPitch);
-
-		modelToCameraStack.Push();
-		modelToCameraStack.Scale(glm::vec3(widthWrist / 2.0f, widthWrist/ 2.0f, lenWrist / 2.0f));
-		glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-		glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-		modelToCameraStack.Pop();
-
-		DrawFingers(modelToCameraStack);
-
-		modelToCameraStack.Pop();
-	}
-
-	void DrawLowerArm(MatrixStack &modelToCameraStack)
-	{
-		modelToCameraStack.Push();
-		modelToCameraStack.Translate(posLowerArm);
-		modelToCameraStack.RotateX(angLowerArm);
-
-		modelToCameraStack.Push();
-		modelToCameraStack.Translate(glm::vec3(0.0f, 0.0f, lenLowerArm / 2.0f));
-		modelToCameraStack.Scale(glm::vec3(widthLowerArm / 2.0f, widthLowerArm / 2.0f, lenLowerArm / 2.0f));
-		glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-		glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-		modelToCameraStack.Pop();
-
-		DrawWrist(modelToCameraStack);
-
-		modelToCameraStack.Pop();
-	}
-
-	void DrawUpperArm(MatrixStack &modelToCameraStack)
-	{
-		modelToCameraStack.Push();
-		modelToCameraStack.RotateX(angUpperArm);
-
-		{
-			modelToCameraStack.Push();
-			modelToCameraStack.Translate(glm::vec3(0.0f, 0.0f, (sizeUpperArm / 2.0f) - 1.0f));
-			modelToCameraStack.Scale(glm::vec3(1.0f, 1.0f, sizeUpperArm / 2.0f));
-			glUniformMatrix4fv(modelToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(modelToCameraStack.Top()));
-			glDrawElements(GL_TRIANGLES, ARRAY_COUNT(indexData), GL_UNSIGNED_SHORT, 0);
-			modelToCameraStack.Pop();
-		}
-
-		DrawLowerArm(modelToCameraStack);
-
-		modelToCameraStack.Pop();
-	}
-
-	glm::vec3		posBase;
-	float			angBase;
-
-	glm::vec3		posBaseLeft, posBaseRight;
-	float			scaleBaseZ;
-
-	float			angUpperArm;
-	float			sizeUpperArm;
-
-	glm::vec3		posLowerArm;
-	float			angLowerArm;
-	float			lenLowerArm;
-	float			widthLowerArm;
-
-	glm::vec3		posWrist;
-	float			angWristRoll;
-	float			angWristPitch;
-	float			lenWrist;
-	float			widthWrist;
-
-	glm::vec3		posLeftFinger, posRightFinger;
-	float			angFingerOpen;
-	float			lenFinger;
-	float			widthFinger;
-	float			angLowerFinger;
-};
-
-
-Hierarchy g_armature;
-
-//spherical cam co ordinates
-glm::vec3 sphericalCam(45,45,60.0f);
-
-// euclidean cam co rdinates in world sapce
-glm::vec3 camPos;
-
-//where does cam look at (point)
-glm::vec3 camTarget(3.0f, 2.0f, -35.0f);
-
-glm::vec3 sphericalCamToEuclidean() {
-	float phi = DegToRad(sphericalCam.x);
-	float theta = DegToRad(sphericalCam.y+90);
-	float radius = sphericalCam.z;
-
-	float cosPhi = cosf(phi);
-	float cosTheta = cosf(theta);
-	float sinPhi = sinf(phi);
-	float sinTheta = sinf(theta);
-
-	glm::vec3 DirVec(sinTheta*cosPhi, cosTheta, sinTheta*sinPhi);
-	return ((DirVec*radius)+camTarget);
-}
-
-glm::mat4 CalcLookAtMatrix(const glm::vec3 &cameraPt, const glm::vec3 &lookPt, const glm::vec3 &upPt)
-{
-	glm::vec3 lookDir = glm::normalize(lookPt - cameraPt);
-	glm::vec3 upDir = glm::normalize(upPt);
-
-	glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, upDir));
-	glm::vec3 perpUpDir = glm::cross(rightDir, lookDir);
-
-	glm::mat4 rotMat(1.0f);
-	rotMat[0] = glm::vec4(rightDir, 0.0f);
-	rotMat[1] = glm::vec4(perpUpDir, 0.0f);
-	rotMat[2] = glm::vec4(-lookDir, 0.0f);
-
-	rotMat = glm::transpose(rotMat);
-
-	glm::mat4 transMat(1.0f);
-	transMat[3] = glm::vec4(-cameraPt, 1.0f);
-
-	return rotMat * transMat;
-}
+const unsigned int SCR_HEIGHT = 600;
 
 int main()
 {
@@ -597,7 +42,6 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSetKeyCallback(window,processInput);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -606,103 +50,140 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-    glEnable(GL_DEPTH_TEST);
 
-    Shader ourShader("../src/shaders/vertexShader.vert","../src/shaders/fragmentShader.frag");
-	theProgram = ourShader.ID;
-    ourShader.use();
+    // build and compile our shader zprogram
+    // ------------------------------------
+    Shader ourShader("../src/shaders/vertexShader.vert", "../src/shaders/fragmentShader.frag");
 
-	modelToCameraMatrixUnif = glGetUniformLocation(theProgram, "modelToCameraMatrix");
-	cameraToClipMatrixUnif = glGetUniformLocation(theProgram, "cameraToClipMatrix");
-	worldToCameraMatrixUnif = glGetUniformLocation(theProgram,"worldToCameraMatrix");
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float vertices[] = {
+        // positions          // texture coords
+         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
+         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
+        -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left 
+    };
+    unsigned int indices[] = {
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
+    };
+    unsigned int VBO, VAO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // texture coord attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
 
+    // load and create a texture 
+    // -------------------------
+    unsigned int texture1, texture2;
+    // texture 1
+    // ---------
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // load image, create texture and generate mipmaps
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+    unsigned char *data = stbi_load("../resources/textures/container.jpg", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+    // texture 2
+    // ---------
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // load image, create texture and generate mipmaps
+    data = stbi_load("../resources/textures/awesomeface.png", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
 
-	float fzNear = 1.0f; float fzFar = 1000.0f;
+    // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
+    // -------------------------------------------------------------------------------------------
+    ourShader.use(); 
+    ourShader.setInt("texture1", 0);
+    ourShader.setInt("texture2", 1);
 
-	cameraToClipMatrix[0].x = fFrustumScale;
-	cameraToClipMatrix[1].y = fFrustumScale;
-	cameraToClipMatrix[2].z = (fzFar + fzNear) / (fzNear - fzFar);
-	cameraToClipMatrix[2].w = -1.0f;
-	cameraToClipMatrix[3].z = (2 * fzFar * fzNear) / (fzNear - fzFar);
-
-	glUseProgram(theProgram);
-	glUniformMatrix4fv(cameraToClipMatrixUnif, 1, GL_FALSE, glm::value_ptr(cameraToClipMatrix));
-	glUseProgram(0);
-
-    //initialize vertex buffer
-	glGenBuffers(1, &vertexBufferObject);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertexData), vertexData, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glGenBuffers(1, &indexBufferObject);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexData), indexData, GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-	//vertex attribute array
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	size_t colorDataOffset = sizeof(float) * 3 * numberOfVertices;
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)colorDataOffset);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
-
-	glBindVertexArray(0);
-
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CW);
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_TRUE);
-	glDepthFunc(GL_LEQUAL);
-	glDepthRange(0.0f, 1.0f);
-
-    // uncomment this call to draw in wireframe polygons.
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // render loop
     // -----------
-
     while (!glfwWindowShouldClose(window))
     {
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		glClearDepth(1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // input
+        // -----
+        processInput(window);
 
-		glUseProgram(theProgram);
+        // render
+        // ------
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-		glBindVertexArray(vao);
+        // bind textures on corresponding texture units
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
 
-		//convert sphercal cam co-ordinates to euclidean co-cordinates
-		camPos = sphericalCamToEuclidean();
+        // get matrix's uniform location and set matrix
+        ourShader.use();
 
-		worldToCameraMatrix = CalcLookAtMatrix(camPos, camTarget, glm::vec3(0.0f, 1.0f, 0.0f));
+        // render container
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-		glUniformMatrix4fv(worldToCameraMatrixUnif, 1, GL_FALSE, glm::value_ptr(worldToCameraMatrix));
-
-		g_armature.Draw();
-
-		glBindVertexArray(0);
-		glUseProgram(0);
+        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+        // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &indexBufferObject);
-	glDeleteBuffers(1, &vertexBufferObject);
-	// glDeleteBuffers(1, &IBO);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
@@ -712,47 +193,16 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window, int key, int scancode, int action, int mods)
-{	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-		switch(key) {
-			case GLFW_KEY_A: g_armature.AdjBase(true); break;
-			case GLFW_KEY_D: g_armature.AdjBase(false); break;
-			case GLFW_KEY_W: g_armature.AdjUpperArm(false); break;
-			case GLFW_KEY_S: g_armature.AdjUpperArm(true); break;
-			case GLFW_KEY_R: g_armature.AdjLowerArm(false); break;
-			case GLFW_KEY_F: g_armature.AdjLowerArm(true); break;
-			case GLFW_KEY_T: g_armature.AdjWristPitch(false); break;
-			case GLFW_KEY_G: g_armature.AdjWristPitch(true); break;
-			case GLFW_KEY_Z: g_armature.AdjWristRoll(true); break;
-			case GLFW_KEY_C: g_armature.AdjWristRoll(false); break;
-			case GLFW_KEY_Q: g_armature.AdjFingerOpen(true); break;
-			case GLFW_KEY_E: g_armature.AdjFingerOpen(false); break;
-			case GLFW_KEY_L: sphericalCam.x += -15; break;
-			case GLFW_KEY_J: sphericalCam.x += 15; break;
-			case GLFW_KEY_I: sphericalCam.y += -15; break;
-			case GLFW_KEY_K: sphericalCam.y += 15; break;
-			case GLFW_KEY_U: sphericalCam.z += 5.0f; break;
-			case GLFW_KEY_O: sphericalCam.z += -5.0f; break;
-			case GLFW_KEY_SPACE: g_armature.WritePose(); break; 
-			case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(window, true); break;
-			default : printf("NOT AN INPUT KEY"); break;
-		}
-
-		sphericalCam.y = Clamp(sphericalCam.y,-90,90);
-	}
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	cameraToClipMatrix[0].x = fFrustumScale * (height / (float)width);
-	cameraToClipMatrix[1].y = fFrustumScale;
-
-	glUseProgram(theProgram);
-	glUniformMatrix4fv(cameraToClipMatrixUnif, 1, GL_FALSE, glm::value_ptr(cameraToClipMatrix));
-	glUseProgram(0);
-
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);

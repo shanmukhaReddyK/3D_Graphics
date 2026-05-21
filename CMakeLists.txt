@@ -15,7 +15,13 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/glad)
 add_subdirectory(external/glfw)
 
-add_executable(app src/main.cpp)
+add_executable(app 
+    src/main.cpp
+    src/stb_image.cpp
+)
 
 target_link_libraries(app PRIVATE glad glfw)
-target_include_directories(app PRIVATE external/glm)
+target_include_directories(app PRIVATE 
+    external/glm
+    external/stb
+)
