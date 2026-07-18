@@ -63,7 +63,6 @@ int main() {
   glfwSetCursorPosCallback(window, mouse_callback);
 
   glfwSetScrollCallback(window, scroll_callback);
-
   // glad: load all OpenGL function pointers
   // ---------------------------------------
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
