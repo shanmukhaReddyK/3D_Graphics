@@ -75,62 +75,68 @@ int main() {
   Shader lightCubeShader("../src/shaders/light_cube.vert", "../src/shaders/light_cube.frag");
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
-  float vertices[] = {
-    -0.5f, -0.5f, -0.5f, 
-     0.5f, -0.5f, -0.5f,  
-     0.5f,  0.5f, -0.5f,  
-     0.5f,  0.5f, -0.5f,  
-    -0.5f,  0.5f, -0.5f, 
-    -0.5f, -0.5f, -0.5f, 
+  
 
-    -0.5f, -0.5f,  0.5f, 
-     0.5f, -0.5f,  0.5f,  
-     0.5f,  0.5f,  0.5f,  
-     0.5f,  0.5f,  0.5f,  
-    -0.5f,  0.5f,  0.5f, 
-    -0.5f, -0.5f,  0.5f, 
+float vertices[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
 
-    -0.5f,  0.5f,  0.5f, 
-    -0.5f,  0.5f, -0.5f, 
-    -0.5f, -0.5f, -0.5f, 
-    -0.5f, -0.5f, -0.5f, 
-    -0.5f, -0.5f,  0.5f, 
-    -0.5f,  0.5f,  0.5f, 
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
 
-     0.5f,  0.5f,  0.5f,  
-     0.5f,  0.5f, -0.5f,  
-     0.5f, -0.5f, -0.5f,  
-     0.5f, -0.5f, -0.5f,  
-     0.5f, -0.5f,  0.5f,  
-     0.5f,  0.5f,  0.5f,  
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-    -0.5f, -0.5f, -0.5f, 
-     0.5f, -0.5f, -0.5f,  
-     0.5f, -0.5f,  0.5f,  
-     0.5f, -0.5f,  0.5f,  
-    -0.5f, -0.5f,  0.5f, 
-    -0.5f, -0.5f, -0.5f, 
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
 
-    -0.5f,  0.5f, -0.5f, 
-     0.5f,  0.5f, -0.5f,  
-     0.5f,  0.5f,  0.5f,  
-     0.5f,  0.5f,  0.5f,  
-    -0.5f,  0.5f,  0.5f, 
-    -0.5f,  0.5f, -0.5f, 
-  };
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+};
+
 
   unsigned int VBO, cubeVAO;
   glGenVertexArrays(1, &cubeVAO);
   glGenBuffers(1, &VBO);
 
-  glBindVertexArray(cubeVAO);
-
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+  glBindVertexArray(cubeVAO);
   // position attribute
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
+
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
 
   //light source cude
   unsigned int lightCubeVAO;
@@ -139,8 +145,10 @@ int main() {
   // we only need to bind to the VBO, the container's VBO's data already contains the data.
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   // set the vertex attribute 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6* sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
+  
+  lightingShader.use();
 
     while (!glfwWindowShouldClose(window))
     {
@@ -163,6 +171,9 @@ int main() {
         lightingShader.use();
         lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
         lightingShader.setVec3("lightColor",  1.0f, 1.0f, 1.0f);
+        lightingShader.setVec3("lightPos",lightPos);
+        lightingShader.setVec3("viewPos",camera.Position);
+
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -252,7 +263,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top (in glfw top left-origin, +x right, +y down) 
 
     lastX = xpos;
     lastY = ypos;
