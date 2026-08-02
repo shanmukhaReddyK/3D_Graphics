@@ -30,7 +30,7 @@ float deltaTime = 0.0f; // Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
 // lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(4, 0, 0);
 
 int main() {
   // glfw: initialize and configure
@@ -147,9 +147,7 @@ float vertices[] = {
   // set the vertex attribute 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6* sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
-  
-  lightingShader.use();
-
+    
     while (!glfwWindowShouldClose(window))
     {
         // per-frame time logic
@@ -171,6 +169,14 @@ float vertices[] = {
         lightingShader.use();
         lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
         lightingShader.setVec3("lightColor",  1.0f, 1.0f, 1.0f);
+        //circular motion right 
+        // x = asin(wt);
+        // y = acos(wt);
+        // w = 2phi * 1/ t 
+        float radius = 2;
+        lightPos.x = radius*cos((3.14*currentFrame)*1/2); //time period 4 sec
+        lightPos.z = radius*sin((3.14*currentFrame)*1/2);
+        
         lightingShader.setVec3("lightPos",lightPos);
         lightingShader.setVec3("viewPos",camera.Position);
 
