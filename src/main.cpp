@@ -16,12 +16,12 @@ void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 2560;
+const unsigned int SCR_HEIGHT = 1600;
 
 bool firstMouse = true;
 
-Camera camera (glm::vec3(0.0f,0.0f,3.0f));
+Camera camera (glm::vec3(10.0f,10.0f,3.0f));
 
 float lastX = SCR_WIDTH/ 2.0;
 float lastY = SCR_HEIGHT/ 2.0;
@@ -30,7 +30,7 @@ float deltaTime = 0.0f; // Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
 // lighting
-glm::vec3 lightPos(4, 2, 3);
+glm::vec3 lightPos(2, -400, 2);
 
 int main() {
   // glfw: initialize and configure
@@ -177,6 +177,8 @@ float vertices[] = {
         lightingShader.setVec3("light.ambient", ambientColor);
         lightingShader.setVec3("light.diffuse", diffuseColor);
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+        lightPos.y += deltaTime*100.0f;
         lightingShader.setVec3("light.position",lightPos);
 
         // be sure to activate shader when setting uniforms/drawing objects
@@ -188,13 +190,14 @@ float vertices[] = {
 
 
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 10000.0f);
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
 
         // world transformation
         glm::mat4 model = glm::mat4(1.0f);
+        model = glm::scale(model, glm::vec3(10.0f,10000.0f,1.0f)); // a smaller cube
         lightingShader.setMat4("model", model);
 
         // render the cube
