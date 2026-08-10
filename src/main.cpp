@@ -30,7 +30,7 @@ float deltaTime = 0.0f; // Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
 // lighting
-glm::vec3 lightPos(4, 0, 0);
+glm::vec3 lightPos(4, 2, 3);
 
 int main() {
   // glfw: initialize and configure
@@ -164,20 +164,26 @@ float vertices[] = {
         // ------
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        // be sure to activate shader when setting uniforms/drawing objects
+
         lightingShader.use();
-        lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-        lightingShader.setVec3("lightColor",  1.0f, 1.0f, 1.0f);
-        //circular motion right 
-        // x = asin(wt);
-        // y = acos(wt);
-        // w = 2phi * 1/ t 
-        float radius = 2;
-        lightPos.x = radius*cos((3.14*currentFrame)*1/2); //time period 4 sec
-        lightPos.z = radius*sin((3.14*currentFrame)*1/2);
-        
-        lightingShader.setVec3("lightPos",lightPos);
+
+        // light properties
+        glm::vec3 lightColor;
+        lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));
+        lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
+        lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));
+        glm::vec3 diffuseColor = lightColor   * glm::vec3(0.5f); // decrease the influence
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // low influence
+        lightingShader.setVec3("light.ambient", ambientColor);
+        lightingShader.setVec3("light.diffuse", diffuseColor);
+        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setVec3("light.position",lightPos);
+
+        // be sure to activate shader when setting uniforms/drawing objects
+        lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+        lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+        lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        lightingShader.setFloat("material.shininess", 32.0f);
         lightingShader.setVec3("viewPos",camera.Position);
 
 
