@@ -7,3 +7,7 @@
 # Phong shading
 <img width="2526" height="1510" alt="image" src="https://github.com/user-attachments/assets/b48a5626-e1ea-4aca-af29-e5e9a3e5886e" />
 
+# Diffuse and specular maps
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/f3ff3618-929d-47cd-9041-605850decbf9" />
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/d83efd09-b18a-427e-963c-9d0f866b32ea" />
+
