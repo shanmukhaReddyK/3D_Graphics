@@ -11,3 +11,15 @@
 <img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/f3ff3618-929d-47cd-9041-605850decbf9" />
 <img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/d83efd09-b18a-427e-963c-9d0f866b32ea" />
 
+# Directional light
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/cef0a9f7-3a19-4a29-a871-a3c6cc1b8065" />
+
+# Point light
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/4c05abef-6bdf-4071-9df0-c336cf1fd0a4" />
+
+# flash light
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/210e620e-7cd0-4e07-aacd-f9e8c33fc7cd" />
+
+#flash light but realistic :)
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/60c24f1b-0078-42c0-b8c9-ba3136540787" />
+
