@@ -16,12 +16,36 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_subdirectory(external/glad)
 add_subdirectory(external/glfw)
 
+# ----------------- ImGui Target -----------------
+add_library(imgui STATIC
+    external/imgui/imgui.cpp
+    external/imgui/imgui_draw.cpp
+    external/imgui/imgui_tables.cpp
+    external/imgui/imgui_widgets.cpp
+    external/imgui/imgui_demo.cpp
+    external/imgui/backends/imgui_impl_glfw.cpp
+    external/imgui/backends/imgui_impl_opengl3.cpp
+)
+
+# ImGui needs glad & glfw headers to compile its backends
+target_include_directories(imgui PUBLIC
+    external/imgui
+    external/imgui/backends
+)
+target_link_libraries(imgui PUBLIC glad glfw)
+# ------------------------------------------------
+
 add_executable(app 
     src/main.cpp
     src/stb_image.cpp
 )
 
-target_link_libraries(app PRIVATE glad glfw)
+target_link_libraries(app PRIVATE 
+    glad 
+    glfw 
+    imgui
+)
+
 target_include_directories(app PRIVATE 
     external/glm
     external/stb
