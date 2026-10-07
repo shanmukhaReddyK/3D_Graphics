@@ -6,23 +6,29 @@
 
 #include <iostream>
 
-#include "glm/detail/type_vec.hpp"
 #include "shader.h"
 #include "camera.h"
 #include "stb_image.h"
+
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
 unsigned int loadTexture(const char *path);
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1920;
+const unsigned int SCR_HEIGHT = 1080;
 
 bool firstMouse = true;
 
 Camera camera (glm::vec3(0,0,3.0f));
+bool cameraDragging = false;
 
 float lastX = SCR_WIDTH/ 2.0;
 float lastY = SCR_HEIGHT/ 2.0;
@@ -57,16 +63,26 @@ int main() {
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, mouse_callback);
-
+  glfwSetMouseButtonCallback(window, mouse_button_callback);
   glfwSetScrollCallback(window, scroll_callback);
+
   // glad: load all OpenGL function pointers
   // ---------------------------------------
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
     return -1;
   }
+
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+  ImGui::StyleColorsDark();
+
+  // Setup platform / renderer backends
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init("#version 330");
 
   glEnable(GL_DEPTH_TEST);
 
@@ -185,6 +201,16 @@ int main() {
         // -----
         processInput(window);
 
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Render UI
+        ImGui::ShowDemoWindow(); // Built-in demo to test setup
+
+        // Render OpenGL scene
+        ImGui::Render();
+
         // render
         // ------
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -242,6 +268,8 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 
         // also draw the lamp object
         // lightCubeShader.use();
@@ -263,7 +291,10 @@ int main() {
     }
 
     // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------------------a
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
     glDeleteVertexArrays(1, &cubeVAO);
     glDeleteVertexArrays(1, &lightCubeVAO);
     glDeleteBuffers(1, &VBO);
@@ -280,6 +311,8 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (ImGui::GetIO().WantCaptureKeyboard) return;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -301,10 +334,33 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 
-// glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
+
+    ImGuiIO& io = ImGui::GetIO();
+
+    if (action == GLFW_PRESS)
+    {
+        if (io.WantCaptureMouse) return;
+
+        cameraDragging = true;
+        firstMouse = true;
+        io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+    else if (action == GLFW_RELEASE && cameraDragging)
+    {
+        cameraDragging = false;
+        io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+}
+
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
+    if (!cameraDragging) return;
+
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -316,18 +372,16 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top (in glfw top left-origin, +x right, +y down) 
-
+    float yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
 
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
+    if (ImGui::GetIO().WantCaptureMouse) return;
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
