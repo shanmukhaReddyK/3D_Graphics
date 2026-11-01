@@ -185,13 +185,15 @@ int main() {
   glEnableVertexAttribArray(0);
 
   unsigned int diffuseMap = loadTexture("../resources/textures/container2.png");
-  unsigned int specularMap = loadTexture("../resources/textures/container2_specular_realistic.png");
+  unsigned int specularMap = loadTexture("../resources/textures/lighting_maps_specular_color.png");
+  unsigned int emissionMap = loadTexture("../resources/textures/emission.jpg");
 
   // shader configuration
   // --------------------
   lightingShader.use(); 
   lightingShader.setInt("material.diffuse", 0);
   lightingShader.setInt("material.specular", 1);
+  lightingShader.setInt("material.emission", 2);
 
   //light properties
   glm::vec3 light_ambient (0.1f, 0.1f, 0.1f);
@@ -277,6 +279,9 @@ int main() {
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, specularMap);
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, emissionMap);
 
         // render the cube
         glBindVertexArray(cubeVAO);
