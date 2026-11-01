@@ -23,3 +23,7 @@
 # flash light but realistic :)
 <img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/60c24f1b-0078-42c0-b8c9-ba3136540787" />
 
+# emission map
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/38e872d3-f23f-4db3-9958-da4994d30d18" />
+
+
