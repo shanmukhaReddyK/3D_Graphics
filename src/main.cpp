@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include "glm/detail/func_trigonometric.hpp"
+#include "glm/detail/type_vec.hpp"
 #include "shader.h"
 #include "camera.h"
 #include "stb_image.h"
@@ -77,6 +79,8 @@ int main() {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO(); (void)io;
+  ImGui::GetStyle().ScaleAllSizes(2.0f);
+  ImGui::GetIO().FontGlobalScale=2.0f;
 
   ImGui::StyleColorsDark();
 
@@ -189,6 +193,23 @@ int main() {
   lightingShader.setInt("material.diffuse", 0);
   lightingShader.setInt("material.specular", 1);
 
+  //light properties
+  glm::vec3 light_ambient (0.1f, 0.1f, 0.1f);
+  glm::vec3 light_diffuse (0.8f, 0.8f, 0.8f);
+  glm::vec3 light_specular(1.0f, 1.0f, 1.0f);
+
+  // attenuation equation constants ( intensity of light decreases as per distance)
+  float light_constant  = 1.0f;
+  float light_linear    = 0.09f;
+  float light_quadratic = 0.032f;
+
+  glm::vec3 light_position = camera.Position;
+  
+  //flash light properties ( light position should be same as camera position and light direction should be camera's front)
+  float light_cutOff = 12.5f;
+  float light_outerCutOff = 17.5f;
+
+
     while (!glfwWindowShouldClose(window))
     {
         // per-frame time logic
@@ -205,12 +226,15 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // Render UI
-        ImGui::ShowDemoWindow(); // Built-in demo to test setup
+        ImGui::Begin("Scene Options");
+        ImGui::Text("Light properties");
+        ImGui::SliderFloat3("light ambient", glm::value_ptr(light_ambient), 0.1f, 1.0f);
+        ImGui::SliderFloat3("light diffuse", glm::value_ptr(light_diffuse), 0.1f, 1.0f);// Edit 1 float using a slider from 0.0f to 1.0f
+        ImGui::SliderFloat3("light specular", glm::value_ptr(light_specular), 0.1f, 1.0f);
 
-        // Render OpenGL scene
-        ImGui::Render();
-
+        ImGui::SliderFloat("light cutoff", &light_cutOff ,1.0f, 90.0f);
+        ImGui::SliderFloat("light outer cutoff", &light_outerCutOff ,1.0f, 90.0f);
+        ImGui::End();
         // render
         // ------
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -219,9 +243,9 @@ int main() {
         lightingShader.use();
 
         // light properties
-        lightingShader.setVec3("light.ambient", 0.1f, 0.1f, 0.1f);
-        lightingShader.setVec3("light.diffuse", 0.8f, 0.8f, 0.8f);
-        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setVec3("light.ambient", light_ambient);
+        lightingShader.setVec3("light.diffuse", light_diffuse);
+        lightingShader.setVec3("light.specular", light_specular);
 
         lightingShader.setFloat("light.constant",  1.0f);
         lightingShader.setFloat("light.linear",    0.09f);
@@ -229,8 +253,8 @@ int main() {
 
         lightingShader.setVec3("light.position",  camera.Position);
         lightingShader.setVec3("light.direction", camera.Front);
-        lightingShader.setFloat("light.cutOff",   glm::cos(glm::radians(12.5f)));
-        lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+        lightingShader.setFloat("light.cutOff",   glm::cos(glm::radians(light_cutOff)));
+        lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(light_outerCutOff)));
 
 
         // be sure to activate shader when setting uniforms/drawing objects
@@ -267,6 +291,7 @@ int main() {
 
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
+        ImGui::Render();
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
