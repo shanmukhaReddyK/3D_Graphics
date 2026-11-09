@@ -26,4 +26,7 @@
 # emission map
 <img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/38e872d3-f23f-4db3-9958-da4994d30d18" />
 
+# multiple light sources
+<img width="2560" height="1600" alt="image" src="https://github.com/user-attachments/assets/222f913d-d8ca-480d-856e-1f9acb517154" />
+
 
