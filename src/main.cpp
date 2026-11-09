@@ -6,10 +6,10 @@
 
 #include <iostream>
 
+#include "camera.h"
 #include "glm/detail/func_trigonometric.hpp"
 #include "glm/detail/type_vec.hpp"
 #include "shader.h"
-#include "camera.h"
 #include "stb_image.h"
 
 #include "imgui.h"
@@ -20,7 +20,8 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+void mouse_button_callback(GLFWwindow *window, int button, int action,
+                           int mods);
 
 unsigned int loadTexture(const char *path);
 // settings
@@ -29,11 +30,11 @@ const unsigned int SCR_HEIGHT = 1080;
 
 bool firstMouse = true;
 
-Camera camera (glm::vec3(0,0,3.0f));
+Camera camera(glm::vec3(0, 0, 3.0f));
 bool cameraDragging = false;
 
-float lastX = SCR_WIDTH/ 2.0;
-float lastY = SCR_HEIGHT/ 2.0;
+float lastX = SCR_WIDTH / 2.0;
+float lastY = SCR_HEIGHT / 2.0;
 
 float deltaTime = 0.0f; // Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
@@ -78,9 +79,10 @@ int main() {
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO(); (void)io;
+  ImGuiIO &io = ImGui::GetIO();
+  (void)io;
   ImGui::GetStyle().ScaleAllSizes(2.0f);
-  ImGui::GetIO().FontGlobalScale=2.0f;
+  ImGui::GetIO().FontGlobalScale = 2.0f;
 
   ImGui::StyleColorsDark();
 
@@ -92,69 +94,63 @@ int main() {
 
   // build and compile our shader zprogram
   // ------------------------------------
-  Shader lightingShader("../src/shaders/colors.vert", "../src/shaders/colors.frag");
-  Shader lightCubeShader("../src/shaders/light_cube.vert", "../src/shaders/light_cube.frag");
+  Shader lightingShader("../src/shaders/colors.vert",
+                        "../src/shaders/colors.frag");
+  Shader lightCubeShader("../src/shaders/light_cube.vert",
+                         "../src/shaders/light_cube.frag");
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
 
   float vertices[] = {
-    // positions          // normals           // texture coords
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+      // positions          // normals           // texture coords
+      -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,  0.5f,  -0.5f,
+      -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f,  0.0f,  0.5f,  0.5f,  -0.5f, 0.0f,
+      0.0f,  -1.0f, 1.0f,  1.0f,  0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f,
+      1.0f,  1.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f,  0.0f,
 
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,  0.5f,  -0.5f,
+      0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,
+      0.0f,  1.0f,  1.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+      1.0f,  1.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+      -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
 
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+      -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,
+      -0.5f, -1.0f, 0.0f,  0.0f,  1.0f,  1.0f,  -0.5f, -0.5f, -0.5f, -1.0f,
+      0.0f,  0.0f,  0.0f,  1.0f,  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,
+      0.0f,  1.0f,  -0.5f, -0.5f, 0.5f,  -1.0f, 0.0f,  0.0f,  0.0f,  0.0f,
+      -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
 
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,  0.5f,  0.5f,
+      -0.5f, 1.0f,  0.0f,  0.0f,  1.0f,  1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,
+      0.0f,  0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,
+      0.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f,  1.0f,  0.5f,  -0.5f,
+      -0.5f, 0.0f,  -1.0f, 0.0f,  1.0f,  1.0f,  0.5f,  -0.5f, 0.5f,  0.0f,
+      -1.0f, 0.0f,  1.0f,  0.0f,  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,
+      1.0f,  0.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  0.0f,  0.0f,
+      -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f,  1.0f,
 
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-  };
+      -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f,  0.5f,  0.5f,
+      -0.5f, 0.0f,  1.0f,  0.0f,  1.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,
+      1.0f,  0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+      1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+      -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f,  1.0f};
 
-      // positions all containers
+  // positions all containers
   glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f),
-        glm::vec3( 2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3( 2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f,  3.0f, -7.5f),
-        glm::vec3( 1.3f, -2.0f, -2.5f),
-        glm::vec3( 1.5f,  2.0f, -2.5f),
-        glm::vec3( 1.5f,  0.2f, -1.5f),
-        glm::vec3(-1.3f,  1.0f, -1.5f)
-  };
+      glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
+      glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f)};
+
+  // positions of the point lights
+  glm::vec3 pointLightPositions[] = {
+      glm::vec3(0.7f, 0.2f, 2.0f), glm::vec3(2.3f, -3.3f, -4.0f),
+      glm::vec3(-4.0f, 2.0f, -12.0f), glm::vec3(0.0f, 0.0f, -3.0f)};
 
   unsigned int VBO, cubeVAO;
   glGenVertexArrays(1, &cubeVAO);
@@ -168,286 +164,514 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(6 * sizeof(float)));
   glEnableVertexAttribArray(2);
 
-  //light source cude
+  // light source cude
   unsigned int lightCubeVAO;
   glGenVertexArrays(1, &lightCubeVAO);
   glBindVertexArray(lightCubeVAO);
-  // we only need to bind to the VBO, the container's VBO's data already contains the data.
+  // we only need to bind to the VBO, the container's VBO's data already
+  // contains the data.
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  // set the vertex attribute 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8* sizeof(float), (void*)0);
+  // set the vertex attribute
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
   unsigned int diffuseMap = loadTexture("../resources/textures/container2.png");
-  unsigned int specularMap = loadTexture("../resources/textures/lighting_maps_specular_color.png");
-  unsigned int emissionMap = loadTexture("../resources/textures/emission.jpg");
+  unsigned int specularMap =
+      loadTexture("../resources/textures/container2_specular_realistic.png");
 
   // shader configuration
   // --------------------
-  lightingShader.use(); 
+  lightingShader.use();
   lightingShader.setInt("material.diffuse", 0);
   lightingShader.setInt("material.specular", 1);
-  lightingShader.setInt("material.emission", 2);
 
-  //light properties
-  glm::vec3 light_ambient (0.1f, 0.1f, 0.1f);
-  glm::vec3 light_diffuse (0.8f, 0.8f, 0.8f);
-  glm::vec3 light_specular(1.0f, 1.0f, 1.0f);
+  /*
+   Here we set all the uniforms for the 5/6 types of lights we have. We have to
+   set them manually and index the proper PointLight struct in the array to set
+   each uniform variable. This can be done more code-friendly by defining light
+   types as classes and set their values in there, or by using a more efficient
+   uniform approach by using 'Uniform buffer objects', advance GLSL stuff
+  */
 
-  // attenuation equation constants ( intensity of light decreases as per distance)
-  float light_constant  = 1.0f;
-  float light_linear    = 0.09f;
-  float light_quadratic = 0.032f;
-
+  // spot light properties
+  glm::vec3 spotLight_ambient(0.1f, 0.1f, 0.1f);
+  glm::vec3 spotLight_diffuse(0.8f, 0.8f, 0.8f);
+  glm::vec3 spotLight_specular(1.0f, 1.0f, 1.0f);
+  // attenuation equation constants ( intensity of light decreases as per
+  // distance)
+  float spotLight_constant = 1.0f;
+  float spotLight_linear = 0.09f;
+  float spotLight_quadratic = 0.032f;
   glm::vec3 light_position = camera.Position;
-  
-  //flash light properties ( light position should be same as camera position and light direction should be camera's front)
-  float light_cutOff = 12.5f;
-  float light_outerCutOff = 17.5f;
+  // flash light properties ( light position should be same as camera position
+  // and light direction should be camera's front)
+  float spotLight_cutOff = 12.5f;
+  float spotLight_outerCutOff = 17.5f;
 
+  // DIRECTIONAL LIGHT PROPERTIES
+  glm::vec3 dirLight_direction(-0.2f, -1.0f, -0.3f);
 
-    while (!glfwWindowShouldClose(window))
-    {
-        // per-frame time logic
-        // --------------------
-        float currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+  glm::vec3 dirLight_ambient(0.05f, 0.05f, 0.05f);
+  glm::vec3 dirLight_diffuse(0.4f, 0.4f, 0.4f);
+  glm::vec3 dirLight_specular(0.5f, 0.5f, 0.5f);
 
-        // input
-        // -----
-        processInput(window);
+  // POINT LIGHT 0 PROPERTIES
+  glm::vec3 pointLight0_ambient(0.05f, 0.05f, 0.05f);
+  glm::vec3 pointLight0_diffuse(0.8f, 0.8f, 0.8f);
+  glm::vec3 pointLight0_specular(1.0f, 1.0f, 1.0f);
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+  float pointLight0_constant = 1.0f;
+  float pointLight0_linear = 0.09f;
+  float pointLight0_quadratic = 0.032f;
 
-        ImGui::Begin("Scene Options");
-        ImGui::Text("Light properties");
-        ImGui::SliderFloat3("light ambient", glm::value_ptr(light_ambient), 0.1f, 1.0f);
-        ImGui::SliderFloat3("light diffuse", glm::value_ptr(light_diffuse), 0.1f, 1.0f);// Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::SliderFloat3("light specular", glm::value_ptr(light_specular), 0.1f, 1.0f);
+  // POINT LIGHT 1 PROPERTIES
+  glm::vec3 pointLight1_ambient(0.05f, 0.05f, 0.05f);
+  glm::vec3 pointLight1_diffuse(0.8f, 0.8f, 0.8f);
+  glm::vec3 pointLight1_specular(1.0f, 1.0f, 1.0f);
 
-        ImGui::SliderFloat("light cutoff", &light_cutOff ,1.0f, 90.0f);
-        ImGui::SliderFloat("light outer cutoff", &light_outerCutOff ,1.0f, 90.0f);
-        ImGui::End();
-        // render
-        // ------
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  float pointLight1_constant = 1.0f;
+  float pointLight1_linear = 0.09f;
+  float pointLight1_quadratic = 0.032f;
 
-        lightingShader.use();
+  // POINT LIGHT 2 PROPERTIES
+  glm::vec3 pointLight2_ambient(0.05f, 0.05f, 0.05f);
+  glm::vec3 pointLight2_diffuse(0.8f, 0.8f, 0.8f);
+  glm::vec3 pointLight2_specular(1.0f, 1.0f, 1.0f);
 
-        // light properties
-        lightingShader.setVec3("light.ambient", light_ambient);
-        lightingShader.setVec3("light.diffuse", light_diffuse);
-        lightingShader.setVec3("light.specular", light_specular);
+  float pointLight2_constant = 1.0f;
+  float pointLight2_linear = 0.09f;
+  float pointLight2_quadratic = 0.032f;
 
-        lightingShader.setFloat("light.constant",  1.0f);
-        lightingShader.setFloat("light.linear",    0.09f);
-        lightingShader.setFloat("light.quadratic", 0.032f);
+  // POINT LIGHT 3 PROPERTIES
+  glm::vec3 pointLight3_ambient(0.05f, 0.05f, 0.05f);
+  glm::vec3 pointLight3_diffuse(0.8f, 0.8f, 0.8f);
+  glm::vec3 pointLight3_specular(1.0f, 1.0f, 1.0f);
 
-        lightingShader.setVec3("light.position",  camera.Position);
-        lightingShader.setVec3("light.direction", camera.Front);
-        lightingShader.setFloat("light.cutOff",   glm::cos(glm::radians(light_cutOff)));
-        lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(light_outerCutOff)));
+  float pointLight3_constant = 1.0f;
+  float pointLight3_linear = 0.09f;
+  float pointLight3_quadratic = 0.032f;
 
+  while (!glfwWindowShouldClose(window)) {
+    // per-frame time logic
+    // --------------------
+    float currentFrame = static_cast<float>(glfwGetTime());
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
 
-        // be sure to activate shader when setting uniforms/drawing objects
-        lightingShader.setFloat("material.shininess", 64.0f);
-        lightingShader.setVec3("viewPos",camera.Position);
+    // input
+    // -----
+    processInput(window);
 
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        lightingShader.setMat4("projection", projection);
-        lightingShader.setMat4("view", view);
+    ImGui::Begin("Scene Options");
 
-        // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
-        lightingShader.setMat4("model", model);
+    // DIRECTIONAL LIGHT UI
+    if (ImGui::CollapsingHeader("Directional Light")) {
+      ImGui::PushID("DirectionalLight");
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseMap);
+      ImGui::Text("Direction");
+      ImGui::DragFloat3("Direction", glm::value_ptr(dirLight_direction), 0.01f,
+                        -1.0f, 1.0f);
 
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, specularMap);
+      ImGui::Separator();
 
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, emissionMap);
-
-        // render the cube
-        glBindVertexArray(cubeVAO);
-        for (unsigned int i = 0; i < 10; i++)
-        {
-            // calculate the model matrix for each object and pass it to shader before drawing
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            lightingShader.setMat4("model", model);
-
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-        ImGui::Render();
-
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-
-        // also draw the lamp object
-        // lightCubeShader.use();
-        // lightCubeShader.setMat4("projection", projection);
-        // lightCubeShader.setMat4("view", view);
-        // model = glm::mat4(1.0f);
-        // model = glm::translate(model, camera.Position);   //camera pos only this case beacuse the flashlight pos is same as camera
-        // model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-        // lightCubeShader.setMat4("model", model);
-        //
-        // glBindVertexArray(lightCubeVAO);
-        // glDrawArrays(GL_TRIANGLES, 0, 36);
-        //
-
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+      ImGui::Text("Lighting Colors");
+      ImGui::ColorEdit3("Ambient", glm::value_ptr(dirLight_ambient));
+      ImGui::ColorEdit3("Diffuse", glm::value_ptr(dirLight_diffuse));
+      ImGui::ColorEdit3("Specular", glm::value_ptr(dirLight_specular));
+      ImGui::PopID();
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------a
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-    glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &lightCubeVAO);
-    glDeleteBuffers(1, &VBO);
+    // POINT LIGHT 0 UI
+    if (ImGui::CollapsingHeader("Point Light 0")) {
+      ImGui::PushID("PointLight0");
+      ImGui::Text("Position");
+      ImGui::DragFloat3("Position", glm::value_ptr(pointLightPositions[0]), 0.05f,
+                        -20.0f, 20.0f);
 
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
-    glfwTerminate();
-    return 0;
+      ImGui::Separator();
+
+      ImGui::Text("Lighting Colors");
+      ImGui::ColorEdit3("Ambient", glm::value_ptr(pointLight0_ambient));
+      ImGui::ColorEdit3("Diffuse", glm::value_ptr(pointLight0_diffuse));
+      ImGui::ColorEdit3("Specular", glm::value_ptr(pointLight0_specular));
+
+      ImGui::Separator();
+
+      ImGui::Text("Attenuation");
+      ImGui::DragFloat("Constant", &pointLight0_constant, 0.005f, 0.01f, 2.0f,
+                       "%.3f");
+      ImGui::DragFloat("Linear", &pointLight0_linear, 0.001f, 0.0f, 1.0f,
+                       "%.3f");
+      ImGui::DragFloat("Quadratic", &pointLight0_quadratic, 0.001f, 0.0f, 1.0f,
+                       "%.3f");
+
+      ImGui::PopID();
+    }
+
+    // POINT LIGHT 1 UI
+
+    if (ImGui::CollapsingHeader("Point Light 1")) {
+      ImGui::PushID("PointLight1");
+      ImGui::Text("Position");
+      ImGui::DragFloat3("Position", glm::value_ptr(pointLightPositions[1]), 0.05f,
+                        -20.0f, 20.0f);
+
+      ImGui::Separator();
+
+      ImGui::Text("Lighting Colors");
+      ImGui::ColorEdit3("Ambient", glm::value_ptr(pointLight1_ambient));
+      ImGui::ColorEdit3("Diffuse", glm::value_ptr(pointLight1_diffuse));
+      ImGui::ColorEdit3("Specular", glm::value_ptr(pointLight1_specular));
+      ImGui::Separator();
+
+      ImGui::Text("Attenuation");
+
+      ImGui::DragFloat("Constant", &pointLight1_constant, 0.005f, 0.01f, 2.0f,
+                       "%.3f");
+      ImGui::DragFloat("Linear", &pointLight1_linear, 0.001f, 0.0f, 1.0f,
+                       "%.3f");
+      ImGui::DragFloat("Quadratic", &pointLight1_quadratic, 0.001f, 0.0f, 1.0f,
+                       "%.3f");
+
+      ImGui::PopID();
+    }
+
+    // POINT LIGHT 2 UI
+    if (ImGui::CollapsingHeader("Point Light 2")) {
+      ImGui::PushID("PointLight2");
+      ImGui::Text("Position");
+      ImGui::DragFloat3("Position", glm::value_ptr(pointLightPositions[2]), 0.05f,
+                        -20.0f, 20.0f);
+
+      ImGui::Separator();
+
+      ImGui::Text("Lighting Colors");
+      ImGui::ColorEdit3("Ambient", glm::value_ptr(pointLight2_ambient));
+      ImGui::ColorEdit3("Diffuse", glm::value_ptr(pointLight2_diffuse));
+      ImGui::ColorEdit3("Specular", glm::value_ptr(pointLight2_specular));
+
+      ImGui::Separator();
+
+      ImGui::Text("Attenuation");
+      ImGui::DragFloat("Constant", &pointLight2_constant, 0.005f, 0.01f, 2.0f,
+                       "%.3f");
+      ImGui::DragFloat("Linear", &pointLight2_linear, 0.001f, 0.0f, 1.0f,
+                       "%.3f");
+      ImGui::DragFloat("Quadratic", &pointLight2_quadratic, 0.001f, 0.0f, 1.0f,
+                       "%.3f");
+      ImGui::PopID();
+    }
+
+    // POINT LIGHT 3 UI
+    if (ImGui::CollapsingHeader("Point Light 3")) {
+      ImGui::PushID("PointLight3");
+      ImGui::Text("Position");
+      ImGui::DragFloat3("Position", glm::value_ptr(pointLightPositions[3]), 0.05f,
+                        -20.0f, 20.0f);
+
+      ImGui::Separator();
+
+      ImGui::Text("Lighting Colors");
+      ImGui::ColorEdit3("Ambient", glm::value_ptr(pointLight3_ambient));
+      ImGui::ColorEdit3("Diffuse", glm::value_ptr(pointLight3_diffuse));
+      ImGui::ColorEdit3("Specular", glm::value_ptr(pointLight3_specular));
+
+      ImGui::Separator();
+
+      ImGui::Text("Attenuation");
+      ImGui::DragFloat("Constant", &pointLight3_constant, 0.005f, 0.01f, 2.0f,
+                       "%.3f");
+      ImGui::DragFloat("Linear", &pointLight3_linear, 0.001f, 0.0f, 1.0f,
+                       "%.3f");
+      ImGui::DragFloat("Quadratic", &pointLight3_quadratic, 0.001f, 0.0f, 1.0f,
+                       "%.3f");
+
+      ImGui::PopID();
+    }
+
+    // SPOTLIGHT UI
+    if (ImGui::CollapsingHeader("Spot Light")) {
+      ImGui::PushID("SpotLight");
+
+      ImGui::Text("Lighting Colors");
+      ImGui::ColorEdit3("Ambient", glm::value_ptr(spotLight_ambient));
+      ImGui::ColorEdit3("Diffuse", glm::value_ptr(spotLight_diffuse));
+      ImGui::ColorEdit3("Specular", glm::value_ptr(spotLight_specular));
+
+      ImGui::Separator();
+
+      ImGui::Text("Spotlight Cutoff");
+      ImGui::SliderFloat("Cutoff", &spotLight_cutOff, 1.0f, 90.0f);
+      ImGui::SliderFloat("Outer Cutoff", &spotLight_outerCutOff, 1.0f, 90.0f);
+
+      ImGui::PopID();
+    }
+
+    ImGui::End();
+    // render
+    // ------
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    lightingShader.use();
+    // be sure to activate shader when setting uniforms/drawing objects
+    lightingShader.setFloat("material.shininess", 32.0f);
+    lightingShader.setVec3("viewPos", camera.Position);
+
+    // DIRECTIONAL LIGHT
+    lightingShader.setVec3("dirLight.direction", dirLight_direction);
+    lightingShader.setVec3("dirLight.ambient", dirLight_ambient);
+    lightingShader.setVec3("dirLight.diffuse", dirLight_diffuse);
+    lightingShader.setVec3("dirLight.specular", dirLight_specular);
+
+    // POINT LIGHT 0
+    lightingShader.setVec3("pointLights[0].position", pointLightPositions[0]);
+    lightingShader.setVec3("pointLights[0].ambient", pointLight0_ambient);
+    lightingShader.setVec3("pointLights[0].diffuse", pointLight0_diffuse);
+    lightingShader.setVec3("pointLights[0].specular", pointLight0_specular);
+
+    lightingShader.setFloat("pointLights[0].constant", pointLight0_constant);
+    lightingShader.setFloat("pointLights[0].linear", pointLight0_linear);
+    lightingShader.setFloat("pointLights[0].quadratic", pointLight0_quadratic);
+
+    // POINT LIGHT 1
+    lightingShader.setVec3("pointLights[1].position", pointLightPositions[1]);
+    lightingShader.setVec3("pointLights[1].ambient", pointLight1_ambient);
+    lightingShader.setVec3("pointLights[1].diffuse", pointLight1_diffuse);
+    lightingShader.setVec3("pointLights[1].specular", pointLight1_specular);
+
+    lightingShader.setFloat("pointLights[1].constant", pointLight1_constant);
+    lightingShader.setFloat("pointLights[1].linear", pointLight1_linear);
+    lightingShader.setFloat("pointLights[1].quadratic", pointLight1_quadratic);
+
+    // POINT LIGHT 2
+    lightingShader.setVec3("pointLights[2].position", pointLightPositions[2]);
+    lightingShader.setVec3("pointLights[2].ambient", pointLight2_ambient);
+    lightingShader.setVec3("pointLights[2].diffuse", pointLight2_diffuse);
+    lightingShader.setVec3("pointLights[2].specular", pointLight2_specular);
+
+    lightingShader.setFloat("pointLights[2].constant", pointLight2_constant);
+    lightingShader.setFloat("pointLights[2].linear", pointLight2_linear);
+    lightingShader.setFloat("pointLights[2].quadratic", pointLight2_quadratic);
+
+    // POINT LIGHT 3
+    lightingShader.setVec3("pointLights[3].position", pointLightPositions[3]);
+    lightingShader.setVec3("pointLights[3].ambient", pointLight3_ambient);
+    lightingShader.setVec3("pointLights[3].diffuse", pointLight3_diffuse);
+    lightingShader.setVec3("pointLights[3].specular", pointLight3_specular);
+
+    lightingShader.setFloat("pointLights[3].constant", pointLight3_constant);
+    lightingShader.setFloat("pointLights[3].linear", pointLight3_linear);
+    lightingShader.setFloat("pointLights[3].quadratic", pointLight3_quadratic);
+
+    // spotLight
+    lightingShader.setVec3("spotLight.position", camera.Position);
+    lightingShader.setVec3("spotLight.direction", camera.Front);
+    lightingShader.setVec3("spotLight.ambient", spotLight_ambient);
+    lightingShader.setVec3("spotLight.diffuse", spotLight_diffuse);
+    lightingShader.setVec3("spotLight.specular", spotLight_specular);
+    lightingShader.setFloat("spotLight.constant", spotLight_constant);
+    lightingShader.setFloat("spotLight.linear", spotLight_linear);
+    lightingShader.setFloat("spotLight.quadratic", spotLight_quadratic);
+    lightingShader.setFloat("spotLight.cutOff",
+                            glm::cos(glm::radians(spotLight_cutOff)));
+    lightingShader.setFloat("spotLight.outerCutOff",
+                            glm::cos(glm::radians(spotLight_outerCutOff)));
+
+    // view/projection transformations
+    glm::mat4 projection =
+        glm::perspective(glm::radians(camera.Zoom),
+                         (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 view = camera.GetViewMatrix();
+    lightingShader.setMat4("projection", projection);
+    lightingShader.setMat4("view", view);
+
+    // world transformation
+    glm::mat4 model = glm::mat4(1.0f);
+    lightingShader.setMat4("model", model);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, diffuseMap);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, specularMap);
+
+    // render the cube
+    glBindVertexArray(cubeVAO);
+    for (unsigned int i = 0; i < 10; i++) {
+      // calculate the model matrix for each object and pass it to shader before
+      // drawing
+      glm::mat4 model = glm::mat4(1.0f);
+      model = glm::translate(model, cubePositions[i]);
+      float angle = 20.0f * i;
+      model =
+          glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+      lightingShader.setMat4("model", model);
+
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+
+    // also draw the lamp object(s)
+    lightCubeShader.use();
+    lightCubeShader.setMat4("projection", projection);
+    lightCubeShader.setMat4("view", view);
+
+    // we now draw as many light bulbs as we have point lights.
+    glBindVertexArray(lightCubeVAO);
+    for (unsigned int i = 0; i < 4; i++) {
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, pointLightPositions[i]);
+      model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
+      lightCubeShader.setMat4("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved
+    // etc.)
+    // -------------------------------------------------------------------------------
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+  }
+
+  // optional: de-allocate all resources once they've outlived their purpose:
+  // ------------------------------------------------------------------------a
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+  glDeleteVertexArrays(1, &cubeVAO);
+  glDeleteVertexArrays(1, &lightCubeVAO);
+  glDeleteBuffers(1, &VBO);
+
+  // glfw: terminate, clearing all previously allocated GLFW resources.
+  // ------------------------------------------------------------------
+  glfwTerminate();
+  return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// process all input: query GLFW whether relevant keys are pressed/released this
+// frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+void processInput(GLFWwindow *window) {
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, true);
 
-    if (ImGui::GetIO().WantCaptureKeyboard) return;
+  if (ImGui::GetIO().WantCaptureKeyboard)
+    return;
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    camera.ProcessKeyboard(FORWARD, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    camera.ProcessKeyboard(BACKWARD, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    camera.ProcessKeyboard(LEFT, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// glfw: whenever the window size changed (by OS or user resize) this callback
+// function executes
 // ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+  // make sure the viewport matches the new window dimensions; note that width
+  // and height will be significantly larger than specified on retina displays.
+  glViewport(0, 0, width, height);
 }
 
+void mouse_button_callback(GLFWwindow *window, int button, int action,
+                           int mods) {
+  if (button != GLFW_MOUSE_BUTTON_RIGHT)
+    return;
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
-    if (button != GLFW_MOUSE_BUTTON_RIGHT) return;
+  ImGuiIO &io = ImGui::GetIO();
 
-    ImGuiIO& io = ImGui::GetIO();
+  if (action == GLFW_PRESS) {
+    if (io.WantCaptureMouse)
+      return;
 
-    if (action == GLFW_PRESS)
-    {
-        if (io.WantCaptureMouse) return;
-
-        cameraDragging = true;
-        firstMouse = true;
-        io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
-    else if (action == GLFW_RELEASE && cameraDragging)
-    {
-        cameraDragging = false;
-        io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
+    cameraDragging = true;
+    firstMouse = true;
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  } else if (action == GLFW_RELEASE && cameraDragging) {
+    cameraDragging = false;
+    io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  }
 }
 
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
-    if (!cameraDragging) return;
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
+  if (!cameraDragging)
+    return;
 
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
+  float xpos = static_cast<float>(xposIn);
+  float ypos = static_cast<float>(yposIn);
 
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
+  if (firstMouse) {
     lastX = xpos;
     lastY = ypos;
+    firstMouse = false;
+  }
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+  float xoffset = xpos - lastX;
+  float yoffset = lastY - ypos;
+  lastX = xpos;
+  lastY = ypos;
+
+  camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    if (ImGui::GetIO().WantCaptureMouse) return;
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+  if (ImGui::GetIO().WantCaptureMouse)
+    return;
+  camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
-unsigned int loadTexture(char const * path)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    
-    int width, height, nrComponents;
-    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data)
-    {
-        GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
+unsigned int loadTexture(char const *path) {
+  unsigned int textureID;
+  glGenTextures(1, &textureID);
 
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
+  int width, height, nrComponents;
+  unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+  if (data) {
+    GLenum format;
+    if (nrComponents == 1)
+      format = GL_RED;
+    else if (nrComponents == 3)
+      format = GL_RGB;
+    else if (nrComponents == 4)
+      format = GL_RGBA;
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
+                 GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
 
-        stbi_image_free(data);
-    }
-    else
-    {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    return textureID;
+    stbi_image_free(data);
+  } else {
+    std::cout << "Texture failed to load at path: " << path << std::endl;
+    stbi_image_free(data);
+  }
+
+  return textureID;
 }
