@@ -16,6 +16,23 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_subdirectory(external/glad)
 add_subdirectory(external/glfw)
 
+# ----------------- Assimp (isolated scope) -----------------
+function(add_assimp)
+    # Normal variables, NOT "CACHE ... FORCE": they die when this function ends
+    set(BUILD_SHARED_LIBS OFF)
+    set(ASSIMP_BUILD_TESTS OFF)
+    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+    set(ASSIMP_BUILD_SAMPLES OFF)
+    set(ASSIMP_INSTALL OFF)
+    set(ASSIMP_WARNINGS_AS_ERRORS OFF)
+    set(ASSIMP_BUILD_ZLIB ON)
+    set(ASSIMP_NO_EXPORT ON)
+
+    add_subdirectory(external/assimp)
+endfunction()
+
+add_assimp()
+
 # ----------------- ImGui Target -----------------
 add_library(imgui STATIC
     external/imgui/imgui.cpp
@@ -44,6 +61,7 @@ target_link_libraries(app PRIVATE
     glad 
     glfw 
     imgui
+    assimp
 )
 
 target_include_directories(app PRIVATE 
